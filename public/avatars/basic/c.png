@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <rect width="256" height="256" fill="#EC4899"/>
+  <circle cx="128" cy="128" r="100" fill="rgba(255,255,255,0.2)"/>
+  <text x="128" y="148" font-family="Arial, sans-serif" font-size="80" font-weight="bold" 
+        fill="white" text-anchor="middle">YF</text>
+</svg>
