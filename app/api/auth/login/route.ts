@@ -75,6 +75,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<AuthRespo
           avatar_url: result.user.avatarUrl,
           avatar_name: result.user.avatarName,
           avatar_type: result.user.avatarType,
+          use_photo: result.user.usePhoto,
+          user_photo: result.user.userPhoto,
           awra_coins: result.user.coinBalance,
           is_verified: true,
           is_active: result.user.isActive,

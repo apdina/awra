@@ -161,14 +161,15 @@ export default function AccountPage() {
         avatarName,
         avatarType,
         avatarUrl,
+        usePhoto: false, // Disable photo when selecting avatar
       });
 
       if (result.success) {
-        setUpdateMessage('Avatar updated successfully!');
+        setUpdateMessage(t('account.profile.avatar_updated_successfully'));
         setShowAvatarSelector(false);
         setTimeout(() => setUpdateMessage(null), 3000);
       } else {
-        setUpdateMessage(result.error || 'Failed to update avatar');
+        setUpdateMessage(result.error || t('account.profile.failed_to_update_avatar'));
       }
     } catch (error) {
       console.error("Avatar update failed:", error);
@@ -252,7 +253,7 @@ export default function AccountPage() {
               {/* Avatar Section */}
               <div className="mb-6 pb-6 border-b border-gray-700">
                 <label className="block text-sm font-medium text-gray-300 mb-3">
-                  Profile Avatar
+                  {t('account.profile.profile_avatar')}
                 </label>
                 <div className="flex items-center gap-4">
                   <UserAvatar user={user} size="xl" />
@@ -262,10 +263,10 @@ export default function AccountPage() {
                       className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-medium transition-colors"
                       disabled={isUpdatingAvatar}
                     >
-                      {isUpdatingAvatar ? 'Updating...' : 'Change Avatar'}
+                      {isUpdatingAvatar ? t('account.profile.updating') : t('account.profile.change_avatar')}
                     </button>
                     <p className="text-sm text-gray-400 mt-2">
-                      Choose from our collection of avatars
+                      {t('account.profile.choose_from_collection')}
                     </p>
                   </div>
                 </div>
@@ -275,8 +276,14 @@ export default function AccountPage() {
                   <div className="mt-4 p-4 bg-gray-900 rounded-lg border border-gray-700">
                     <AvatarSelector
                       currentAvatarName={user?.avatarName}
-                      currentAvatarType={user?.avatarType}
+                      currentAvatarType={user?.avatarType as 'basic' | 'special' | 'photo'}
+                      usePhoto={user?.usePhoto}
+                      userPhoto={user?.userPhoto}
                       onSelect={handleAvatarSelect}
+                      onPhotoUpload={() => {
+                        // Refresh user data after photo upload
+                        setShowAvatarSelector(false);
+                      }}
                     />
                   </div>
                 )}

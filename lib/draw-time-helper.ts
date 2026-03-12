@@ -82,24 +82,20 @@ export async function getCurrentDrawInfo(): Promise<{
     const drawData = data.data;
     
     return {
-      draw_date: drawData?.draw_date || new Date().toLocaleDateString('en-GB', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      }).replace(/\//g, '/'),
+      draw_date: drawData?.draw_date || (() => {
+        const now = new Date();
+        return `${String(now.getUTCDate()).padStart(2, '0')}/${String(now.getUTCMonth() + 1).padStart(2, '0')}/${now.getUTCFullYear()}`;
+      })(),
       draw_time: drawData?.draw_time || '21:40',
       dayOfWeek: drawData?.countdown?.dayOfWeek || 'Unknown'
     };
   } catch (error) {
     console.error('Failed to fetch current draw info:', error);
     
-    // Return fallback
+    // Return fallback (use UTC)
+    const now = new Date();
     return {
-      draw_date: new Date().toLocaleDateString('en-GB', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      }).replace(/\//g, '/'),
+      draw_date: `${String(now.getUTCDate()).padStart(2, '0')}/${String(now.getUTCMonth() + 1).padStart(2, '0')}/${now.getUTCFullYear()}`,
       draw_time: '21:40',
       dayOfWeek: 'Unknown'
     };

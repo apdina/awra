@@ -660,7 +660,9 @@ export const updateProfile = mutation({
     displayName: v.optional(v.string()),
     avatarUrl: v.optional(v.string()),
     avatarName: v.optional(v.string()),
-    avatarType: v.optional(v.union(v.literal("basic"), v.literal("special"))),
+    avatarType: v.optional(v.union(v.literal("basic"), v.literal("special"), v.literal("photo"))),
+    usePhoto: v.optional(v.boolean()),
+    userPhoto: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Verify token
@@ -699,8 +701,48 @@ export const updateProfile = mutation({
     if (args.avatarUrl !== undefined) updates.avatarUrl = args.avatarUrl;
     if (args.avatarName !== undefined) updates.avatarName = args.avatarName;
     if (args.avatarType !== undefined) updates.avatarType = args.avatarType;
+    if (args.usePhoto !== undefined) updates.usePhoto = args.usePhoto;
+    // Handle userPhoto - if provided, set it; if not provided, don't update (keeps existing or undefined)
+    if (args.userPhoto !== undefined) {
+      updates.userPhoto = args.userPhoto;
+    }
 
     await ctx.db.patch(user._id, updates);
+
+    return { success: true, user: await ctx.db.get(user._id) };
+  },
+});
+
+/**
+ * Delete user photo
+ * Removes the userPhoto field completely from the database
+ */
+export const deletePhoto = mutation({
+  args: {
+    token: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Verify token
+    const tokenData = await verifyToken(args.token, ctx);
+    if (!tokenData) {
+      throw new Error("Invalid or expired token");
+    }
+
+    // Get user
+    const userDoc = await ctx.db.get(tokenData.userId as any);
+    if (!userDoc) {
+      throw new Error("User not found");
+    }
+
+    const user = userDoc as any;
+
+    // Delete photo by setting to undefined
+    await ctx.db.patch(user._id, {
+      userPhoto: undefined,
+      usePhoto: false,
+      lastActiveAt: Date.now(),
+      lastProfileUpdateAt: Date.now(),
+    });
 
     return { success: true, user: await ctx.db.get(user._id) };
   },

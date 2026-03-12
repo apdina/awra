@@ -29,11 +29,12 @@ export default function WinningNumbersContent({
   // Video ad state
   const [videoAdCompleted, setVideoAdCompleted] = useState(true);
   
-  // Helper function to get day of week from DD/MM/YYYY format
+  // Helper function to get day of week from DD/MM/YYYY format (UTC)
   const getDayOfWeek = (dateString: string): string => {
     const [day, month, year] = dateString.split('/');
-    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-    const dayIndex = date.getDay();
+    // Use UTC to ensure consistent timezone regardless of user's local timezone
+    const date = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day)));
+    const dayIndex = date.getUTCDay();
     const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     return t(`days.${dayKeys[dayIndex]}`);
   };

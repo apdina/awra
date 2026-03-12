@@ -15,9 +15,13 @@ export const userProfiles = defineTable({
   displayName: v.string(),
   // Avatar system: store avatar name and type, images stored locally
   avatarName: v.optional(v.string()), // e.g., "young_mas", "sp1"
-  avatarType: v.optional(v.union(v.literal("basic"), v.literal("special"))),
+  avatarType: v.optional(v.union(v.literal("basic"), v.literal("special"), v.literal("photo"))),
   // Keep avatarUrl for backward compatibility (can store full path)
   avatarUrl: v.optional(v.string()),
+  
+  // User's photo choice
+  usePhoto: v.optional(v.boolean()), // true = use photo, false/undefined = use avatar
+  userPhoto: v.optional(v.string()), // Base64 encoded photo data
   
   // Game state
   coinBalance: v.number(),

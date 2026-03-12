@@ -5,7 +5,7 @@
  */
 
 /**
- * Format a date string to DD/MM/YYYY format
+ * Format a date string to DD/MM/YYYY format (UTC)
  * Accepts various input formats and converts to DD/MM/YYYY
  */
 export function formatDateDDMMYYYY(dateInput: string | Date): string {
@@ -34,22 +34,24 @@ export function formatDateDDMMYYYY(dateInput: string | Date): string {
     return 'Invalid Date';
   }
 
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const year = date.getFullYear();
+  // Use UTC methods for consistent timezone
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const year = date.getUTCFullYear();
 
   return `${day}/${month}/${year}`;
 }
 
 /**
- * Get today's date in DD/MM/YYYY format
+ * Get today's date in DD/MM/YYYY format (UTC)
  */
 export function getTodayDDMMYYYY(): string {
-  return formatDateDDMMYYYY(new Date());
+  const now = new Date();
+  return `${String(now.getUTCDate()).padStart(2, '0')}/${String(now.getUTCMonth() + 1).padStart(2, '0')}/${now.getUTCFullYear()}`;
 }
 
 /**
- * Convert DD/MM/YYYY to Date object
+ * Convert DD/MM/YYYY to Date object (UTC)
  */
 export function parseDDMMYYYY(dateStr: string): Date | null {
   const parts = dateStr.split('/');
@@ -61,7 +63,8 @@ export function parseDDMMYYYY(dateStr: string): Date | null {
 
   if (isNaN(day) || isNaN(month) || isNaN(year)) return null;
 
-  const date = new Date(year, month, day);
+  // Use UTC to create the date
+  const date = new Date(Date.UTC(year, month, day));
   return date;
 }
 
@@ -74,15 +77,16 @@ export function formatDateForDisplay(dateInput: string | Date): string {
 }
 
 /**
- * Get relative date description (Today, Yesterday, etc.)
+ * Get relative date description (Today, Yesterday, etc.) - UTC based
  */
 export function getRelativeDateDescription(dateStr: string): string {
   const date = parseDDMMYYYY(dateStr);
   if (!date) return dateStr;
 
   const today = new Date();
-  const targetDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  // Use UTC for consistent comparison
+  const targetDate = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  const todayDate = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
 
   const diffTime = targetDate.getTime() - todayDate.getTime();
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -110,7 +114,7 @@ export function formatDateTimeForDisplay(dateStr: string, timeStr?: string): str
 }
 
 /**
- * Format ISO date string for display
+ * Format ISO date string for display (UTC)
  * Handles ISO format like "2026-01-21T14:03:47.178472+00:00"
  */
 export function formatISODateTimeForDisplay(isoString: string): string {
@@ -120,12 +124,13 @@ export function formatISODateTimeForDisplay(isoString: string): string {
       return 'Invalid Date';
     }
 
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
+    // Use UTC methods for consistent timezone
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const year = date.getUTCFullYear();
     
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const hours = String(date.getUTCHours()).padStart(2, '0');
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
     
     const formattedDate = `${day}/${month}/${year}`;
     const formattedTime = `${hours}:${minutes}`;
@@ -137,9 +142,9 @@ export function formatISODateTimeForDisplay(isoString: string): string {
 }
 
 /**
- * Get user-friendly date and time display
+ * Get user-friendly date and time display (UTC)
  * Always returns format: "DD/MM/YYYY  HH:MM"
- * Uses GMT+1 timezone for consistent display
+ * Uses UTC timezone for consistent display across all regions
  */
 export function getUserFriendlyDateTime(isoString: string): string {
   try {
@@ -148,17 +153,13 @@ export function getUserFriendlyDateTime(isoString: string): string {
       return 'Invalid Date';
     }
     
-    // Convert to GMT+1 timezone
-    const gmtPlus1Date = new Date(date.getTime() + (60 * 60 * 1000)); // Add 1 hour for GMT+1
+    // Use UTC methods for consistent timezone
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const year = date.getUTCFullYear();
     
-    // Always show full date
-    const day = String(gmtPlus1Date.getDate()).padStart(2, '0');
-    const month = String(gmtPlus1Date.getMonth() + 1).padStart(2, '0');
-    const year = gmtPlus1Date.getFullYear();
-    
-    // Get hours and minutes in GMT+1
-    const hours = String(gmtPlus1Date.getHours()).padStart(2, '0');
-    const minutes = String(gmtPlus1Date.getMinutes()).padStart(2, '0');
+    const hours = String(date.getUTCHours()).padStart(2, '0');
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
     
     return `${day}/${month}/${year}  ${hours}:${minutes}`;
   } catch (error) {

@@ -33,6 +33,7 @@ import type * as roomHelpers from "../roomHelpers.js";
 import type * as scheduledDrawUpdates from "../scheduledDrawUpdates.js";
 import type * as security from "../security.js";
 import type * as systemConfig from "../systemConfig.js";
+import type * as timezoneConfig from "../timezoneConfig.js";
 import type * as unifiedTickets from "../unifiedTickets.js";
 import type * as userManagement from "../userManagement.js";
 import type * as validators from "../validators.js";
@@ -69,6 +70,7 @@ declare const fullApi: ApiFromModules<{
   scheduledDrawUpdates: typeof scheduledDrawUpdates;
   security: typeof security;
   systemConfig: typeof systemConfig;
+  timezoneConfig: typeof timezoneConfig;
   unifiedTickets: typeof unifiedTickets;
   userManagement: typeof userManagement;
   validators: typeof validators;

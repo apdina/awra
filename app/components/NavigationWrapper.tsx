@@ -35,6 +35,8 @@ export default function NavigationWrapper() {
       avatarUrl: user.avatarUrl,
       avatarName: user.avatarName,
       avatarType: user.avatarType,
+      usePhoto: user.usePhoto,
+      userPhoto: user.userPhoto,
     };
   }, [user]);
 

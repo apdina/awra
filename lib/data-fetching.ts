@@ -61,15 +61,12 @@ export async function getCurrentDraw(): Promise<Draw> {
         is_processed: draws.is_processed
       };
     } else {
-      // Fallback if no draws exist
+      // Fallback if no draws exist (use UTC)
       console.log('No draws found, returning fallback data');
+      const now = new Date();
       return {
         id: "mock-draw-1",
-        draw_date: new Date().toLocaleDateString('en-GB', {
-          day: '2-digit',
-          month: '2-digit', 
-          year: 'numeric'
-        }).replace(/\//g, '/'),
+        draw_date: `${String(now.getUTCDate()).padStart(2, '0')}/${String(now.getUTCMonth() + 1).padStart(2, '0')}/${now.getUTCFullYear()}`,
         draw_time: "21:40",
         winning_number: 142,
         is_processed: true
@@ -77,14 +74,11 @@ export async function getCurrentDraw(): Promise<Draw> {
     }
   } catch (error) {
     console.error('Failed to fetch current draw:', error);
-    // Return fallback data instead of throwing
+    // Return fallback data instead of throwing (use UTC)
+    const now = new Date();
     return {
       id: "fallback-draw",
-      draw_date: new Date().toLocaleDateString('en-GB', {
-        day: '2-digit',
-        month: '2-digit', 
-        year: 'numeric'
-      }).replace(/\//g, '/'),
+      draw_date: `${String(now.getUTCDate()).padStart(2, '0')}/${String(now.getUTCMonth() + 1).padStart(2, '0')}/${now.getUTCFullYear()}`,
       draw_time: "21:40",
       winning_number: 142,
       is_processed: true

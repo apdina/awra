@@ -12,7 +12,9 @@ interface User {
   displayName: string;
   avatarUrl?: string;
   avatarName?: string;
-  avatarType?: 'basic' | 'special';
+  avatarType?: 'basic' | 'special' | 'photo';
+  usePhoto?: boolean;
+  userPhoto?: string;
   coinBalance: number;
   isAdmin: boolean;
   isModerator?: boolean;
@@ -32,7 +34,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   register: (email: string, password: string, displayName: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
-  updateProfile: (data: { displayName?: string; avatarUrl?: string; avatarName?: string; avatarType?: 'basic' | 'special' }) => Promise<{ success: boolean; error?: string }>;
+  updateProfile: (data: { displayName?: string; avatarUrl?: string; avatarName?: string; avatarType?: 'basic' | 'special' | 'photo'; usePhoto?: boolean; userPhoto?: string }) => Promise<{ success: boolean; error?: string }>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
   refreshUser: () => Promise<void>;
 }
@@ -78,6 +80,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
             avatarUrl: userData.avatar_url,
             avatarName: userData.avatar_name,
             avatarType: userData.avatar_type,
+            usePhoto: userData.use_photo,
+            userPhoto: userData.user_photo,
             coinBalance: userData.awra_coins || 0,
             isAdmin: userData.role === 'ADMIN',
             isModerator: userData.role === 'MODERATOR',
@@ -133,6 +137,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
           avatarUrl: result.user.avatar_url,
           avatarName: result.user.avatar_name,
           avatarType: result.user.avatar_type,
+          usePhoto: result.user.use_photo,
+          userPhoto: result.user.user_photo,
           coinBalance: result.user.awra_coins || 0,
           isAdmin: result.user.role === 'ADMIN',
           isModerator: result.user.role === 'MODERATOR',
@@ -214,7 +220,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  const updateProfile = async (data: { displayName?: string; avatarUrl?: string; avatarName?: string; avatarType?: 'basic' | 'special' }): Promise<{ success: boolean; error?: string }> => {
+  const updateProfile = async (data: { displayName?: string; avatarUrl?: string; avatarName?: string; avatarType?: 'basic' | 'special' | 'photo'; usePhoto?: boolean; userPhoto?: string }): Promise<{ success: boolean; error?: string }> => {
     try {
       const response = await fetch('/api/auth/profile', {
         method: 'PATCH',
@@ -283,6 +289,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
           avatarUrl: userData.avatar_url,
           avatarName: userData.avatar_name,
           avatarType: userData.avatar_type,
+          usePhoto: userData.use_photo,
+          userPhoto: userData.user_photo,
           coinBalance: userData.awra_coins || 0,
           isAdmin: userData.role === 'ADMIN',
           isModerator: userData.role === 'MODERATOR',

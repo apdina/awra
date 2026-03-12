@@ -8,7 +8,9 @@ interface UserAvatarProps {
     displayName: string;
     avatarUrl?: string;
     avatarName?: string;
-    avatarType?: 'basic' | 'special';
+    avatarType?: 'basic' | 'special' | 'photo';
+    usePhoto?: boolean;
+    userPhoto?: string;
   } | null | undefined;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;

@@ -27,7 +27,7 @@ const CACHE_PREFIXES = {
 const CACHE_TTLS = {
   CURRENT_DRAW: 86400,   // 24 hours - draw data only changes at draw time
   CURRENT_DRAW_VERSION: 86400 * 7, // 7 days - version tracker
-  WINNING_NUMBERS: 86400 * 2, // 48 hours - winning numbers set once per day
+  WINNING_NUMBERS: 0, // NO EXPIRATION - only cleared when admin sets new number
   WINNING_NUMBERS_VERSION: 86400 * 7, // 7 days - version tracker
   DRAW_HISTORY: 3600,     // 1 hour - for draw history
   LOCK_TTL: 30,           // 30 seconds - for lock keys (safety buffer)
@@ -87,15 +87,22 @@ export async function getCache<T>(key: string): Promise<T | null> {
 /**
  * Set cached value with Redis EX TTL (automatic expiration)
  * Uses SET key value EX ttl for atomic operation
+ * If ttl is 0, sets value without expiration (permanent until manually deleted)
  */
 export async function setCache<T>(key: string, value: T, ttl: number = 60): Promise<void> {
   const redis = getRedisClient();
   if (!redis) return;
 
   try {
-    // Use SET with EX for atomic set + TTL (better than SETEX in some cases)
-    await redis.set(key, value, { ex: ttl });
-    console.log(`💾 Redis cache SET: ${key} (TTL: ${ttl}s)`);
+    // If TTL is 0, set without expiration (permanent until manually deleted)
+    if (ttl === 0) {
+      await redis.set(key, value);
+      console.log(`💾 Redis cache SET: ${key} (NO EXPIRATION - manual invalidation only)`);
+    } else {
+      // Use SET with EX for atomic set + TTL
+      await redis.set(key, value, { ex: ttl });
+      console.log(`💾 Redis cache SET: ${key} (TTL: ${ttl}s)`);
+    }
   } catch (error) {
     console.error('Redis SET error:', error);
   }

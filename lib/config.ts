@@ -8,7 +8,9 @@ const envSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
   NEXTAUTH_SECRET: z.string().min(32).optional(),
   NEXTAUTH_URL: z.string().url().optional(),
-  LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
+  LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default(
+    process.env.NODE_ENV === 'production' ? 'error' : 'info'
+  ),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().default(900000), // 15 minutes
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().default(100),
 });
@@ -40,7 +42,7 @@ function getConfig(): z.infer<typeof envSchema> {
         NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
         NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
         SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
-        LOG_LEVEL: 'info',
+        LOG_LEVEL: 'debug',
         RATE_LIMIT_WINDOW_MS: 900000,
         RATE_LIMIT_MAX_REQUESTS: 100,
       } as z.infer<typeof envSchema>;

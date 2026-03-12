@@ -175,6 +175,8 @@ export function Navigation({ isAuthenticated, user, session, loading = false, on
                           avatarUrl: (user as any).avatarUrl,
                           avatarName: (user as any).avatarName,
                           avatarType: (user as any).avatarType,
+                          usePhoto: (user as any).usePhoto,
+                          userPhoto: (user as any).userPhoto,
                         } : null}
                         size="sm"
                       />
@@ -291,6 +293,8 @@ export function Navigation({ isAuthenticated, user, session, loading = false, on
                       avatarUrl: (user as any).avatarUrl,
                       avatarName: (user as any).avatarName,
                       avatarType: (user as any).avatarType,
+                      usePhoto: (user as any).usePhoto,
+                      userPhoto: (user as any).userPhoto,
                     } : null}
                     size="sm"
                   />
@@ -406,6 +410,8 @@ export function Navigation({ isAuthenticated, user, session, loading = false, on
                             avatarUrl: (user as any).avatarUrl,
                             avatarName: (user as any).avatarName,
                             avatarType: (user as any).avatarType,
+                            usePhoto: (user as any).usePhoto,
+                            userPhoto: (user as any).userPhoto,
                           } : null}
                           size="sm"
                         />

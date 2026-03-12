@@ -18,13 +18,11 @@ async function HomeWrapper({ params }: { params: Promise<{ locale: string }> }) 
   
   // Don't fetch current draw on server - let client fetch it with caching
   // This prevents blocking the page render on slow Convex queries
+  // Use UTC for consistent timezone
+  const now = new Date();
   const fallbackDraw = {
     id: "fallback",
-    draw_date: new Date().toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    }).replace(/\//g, '/'),
+    draw_date: `${String(now.getUTCDate()).padStart(2, '0')}/${String(now.getUTCMonth() + 1).padStart(2, '0')}/${now.getUTCFullYear()}`,
     winning_number: null,
     is_processed: false
   };

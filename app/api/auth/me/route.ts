@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/convex-client';
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
@@ -38,6 +39,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         avatar_url: user.avatarUrl,
         avatar_name: user.avatarName,
         avatar_type: user.avatarType,
+        use_photo: user.usePhoto,
+        user_photo: user.userPhoto,
         awra_coins: user.coinBalance,
         is_verified: true,
         is_active: user.isActive,
