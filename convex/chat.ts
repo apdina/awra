@@ -20,7 +20,7 @@ export const sendMessage = mutation({
     userId: v.id("userProfiles"),
     roomId: v.string(),
     content: v.string(),
-    messageType: v.optional(v.union(v.literal("text"), v.literal("system"), v.literal("winner"), v.literal("admin"), v.literal("investigation"))),
+    messageType: v.optional(v.union(v.literal("text"), v.literal("system"), v.literal("winner"))),
   },
   handler: async (ctx, args) => {
     // Get user profile
@@ -119,53 +119,7 @@ async function getAdminSecret(ctx: any): Promise<string> {
   return config?.value as string || "";
 }
 
-// Admin send message (bypasses regular user authentication and rate limiting)
-export const adminSendMessage = mutation({
-  args: {
-    roomId: v.string(),
-    content: v.string(),
-    messageType: v.optional(v.union(v.literal("text"), v.literal("system"), v.literal("admin"), v.literal("investigation"))),
-    adminSecret: v.string(),
-  },
-  handler: async (ctx, args) => {
-    // Verify admin secret from database
-    const ADMIN_SECRET = await getAdminSecret(ctx);
-    if (args.adminSecret !== ADMIN_SECRET) {
-      throw new Error("Invalid admin secret");
-    }
 
-    // Get current user for message ownership (or use system user for admin messages)
-    let userId: Id<"userProfiles"> | undefined;
-    if (args.messageType !== "system" && args.messageType !== "admin" && args.messageType !== "investigation") {
-      const userProfile = await requireAuth(ctx);
-      userId = userProfile._id;
-    }
-
-    // Validate message content
-    const validation = validateChatMessage(args.content);
-    if (!validation.valid) {
-      throw new Error(validation.error || "Invalid message");
-    }
-
-    const sanitizedContent = validation.sanitized!;
-
-    // Create admin message
-    const messageId = await ctx.db.insert("chatMessages", {
-      userId: userId, // Can be undefined for system/admin messages
-      roomId: args.roomId,
-      content: sanitizedContent,
-      messageType: args.messageType || "admin",
-      isDeleted: false,
-      isEdited: false,
-      createdAt: Date.now(),
-    });
-
-    // Don't update rate limiting for admin messages
-    // Don't update user presence for system messages
-
-    return messageId;
-  },
-});
 
 // Delete a message (own messages or admin can delete any)
 export const deleteMessage = mutation({
@@ -333,8 +287,8 @@ export const getMessages = query({
 
     // Format messages with user info - ensure user object is always present
     const formattedMessages = messages.map(msg => {
-      // For system/admin messages without userId
-      if (!msg.userId || msg.messageType === 'system' || msg.messageType === 'admin') {
+      // For system messages without userId
+      if (!msg.userId || msg.messageType === 'system') {
         return {
           ...msg,
           user: {
@@ -547,100 +501,7 @@ export const cleanupPresenceInternal = internalMutation({
 });
 
 
-// Report a message
-export const reportMessage = mutation({
-  args: {
-    messageId: v.id("chatMessages"),
-    reason: v.optional(v.string()),
-    userId: v.id("userProfiles"),
-  },
-  handler: async (ctx, args) => {
-    // Get user profile
-    const userProfile = await ctx.db.get(args.userId);
-    if (!userProfile) {
-      throw new Error("User not found");
-    }
 
-    const message = await ctx.db.get(args.messageId);
-    if (!message) {
-      throw new Error("Message not found");
-    }
-
-    // Prevent self-reporting
-    if (message.userId === userProfile._id) {
-      throw new Error("You cannot report your own message");
-    }
-
-    // Check if user already reported this message (prevent duplicates)
-    const reportedBy = message.reportedBy || [];
-    if (reportedBy.includes(userProfile._id)) {
-      throw new Error("You have already reported this message");
-    }
-
-    // Update message with report
-    const newReportCount = (message.reportCount || 0) + 1;
-    const newReportedBy = [...reportedBy, userProfile._id];
-
-    await ctx.db.patch(args.messageId, {
-      reportCount: newReportCount,
-      reportedBy: newReportedBy,
-      lastReportedAt: Date.now(),
-      lastReportReason: args.reason || "Inappropriate content",
-    });
-
-    return { success: true, reportCount: newReportCount };
-  },
-});
-
-// Get reported messages (admin only)
-export const getReportedMessages = query({
-  handler: async (ctx) => {
-    // Get messages with reports
-    const reportedMessages = await ctx.db
-      .query("chatMessages")
-      .filter((q) => q.gte(q.field("reportCount"), 1))
-      .order("desc")
-      .take(100);
-
-    // Get user profiles for reporters and message authors
-    const userIds = new Set<any>();
-    reportedMessages.forEach(msg => {
-      userIds.add(msg.userId);
-      if (msg.reportedBy) {
-        msg.reportedBy.forEach((id: any) => userIds.add(id));
-      }
-    });
-
-    const userProfiles = await Promise.all(
-      Array.from(userIds).map(id => ctx.db.get(id))
-    );
-
-    const profileMap = new Map();
-    userProfiles.forEach(profile => {
-      if (profile) {
-        profileMap.set(profile._id, profile);
-      }
-    });
-
-    // Format messages with user info
-    const formattedMessages = reportedMessages.map(msg => ({
-      ...msg,
-      author: {
-        id: msg.userId,
-        displayName: profileMap.get(msg.userId)?.displayName || "Unknown",
-        avatarUrl: profileMap.get(msg.userId)?.avatarUrl,
-        avatarName: profileMap.get(msg.userId)?.avatarName,
-        avatarType: profileMap.get(msg.userId)?.avatarType,
-      },
-      reporters: (msg.reportedBy || []).map((id: any) => ({
-        id,
-        displayName: profileMap.get(id)?.displayName || "Unknown",
-      })),
-    }));
-
-    return formattedMessages;
-  },
-});
 
 // Get chat statistics for the dashboard
 export const getChatStats = query({

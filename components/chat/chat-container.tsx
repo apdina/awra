@@ -9,7 +9,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { logger } from '@/lib/logger';
-import { Send, Edit2, Trash2, Users, Megaphone, Shield, AlertCircle, MessageCircle } from "lucide-react";
+import { Send, Edit2, Trash2, Users, Megaphone, Shield, MessageCircle } from "lucide-react";
 import { getUserAvatarUrl, getInitials } from "@/lib/avatarUtils";
 import AdminSystemMessagePanel from "./admin-system-message-panel";
 import VideoAdModal from "./VideoAdModal";
@@ -24,7 +24,7 @@ interface ChatMessage {
   userId?: Id<"userProfiles">;
   roomId: string;
   content: string;
-  messageType: "text" | "system" | "winner" | "admin" | "investigation";
+  messageType: "text" | "system" | "winner";
   isDeleted: boolean;
   isEdited: boolean;
   editedAt?: number;
@@ -86,7 +86,7 @@ export default function ChatContainer({ roomId, className, onRoomChange }: ChatC
   const deleteMessageMutation = useMutation(api.chat.deleteMessage);
   const editMessageMutation = useMutation(api.chat.editMessage);
   const setTypingStatus = useMutation(api.chat.setTypingStatus);
-  const reportMessageMutation = useMutation(api.chat.reportMessage);
+
 
   // Track if we've processed this message ID to prevent duplicate processing
   const processedMessageIdRef = useRef<string | null>(null);
@@ -198,7 +198,7 @@ export default function ChatContainer({ roomId, className, onRoomChange }: ChatC
     if (!isAuthenticated || !authUser?._id) return;
 
     // Show confirmation for moderators/admins deleting other users' messages
-    if (!isOwnMessage && (currentUser?.isAdmin || currentUser?.isModerator)) {
+    if (!isOwnMessage && (currentUser?.isAdmin === true || currentUser?.isModerator === true)) {
       const role = currentUser?.isAdmin ? 'Admin' : 'Moderator';
       const confirmed = window.confirm(
         `Are you sure you want to delete this message as ${role}?\n\nThis action cannot be undone.`
@@ -242,23 +242,7 @@ export default function ChatContainer({ roomId, className, onRoomChange }: ChatC
     }
   };
 
-  // Handle reporting message
-  const handleReportMessage = async (messageId: Id<"chatMessages">) => {
-    if (!isAuthenticated || !authUser?._id) return;
 
-    try {
-      setError(null);
-      const result = await reportMessageMutation({ messageId, userId: authUser._id });
-      if (result.success) {
-        setSuccessMessage("Message reported successfully");
-        setTimeout(() => setSuccessMessage(null), 3000);
-      }
-    } catch (error: any) {
-      logger.error("Failed to report message:", error);
-      setError(error.message || "Failed to report message");
-      setTimeout(() => setError(null), 3000);
-    }
-  };
 
   // Handle typing indicator with debouncing (optimized to reduce API calls)
   const handleTypingStart = useCallback(() => {
@@ -346,15 +330,15 @@ export default function ChatContainer({ roomId, className, onRoomChange }: ChatC
               <div
                 key={msg._id}
                 className={`flex gap-2 ${
-                  msg.messageType === "system" || msg.messageType === "admin"
+                  msg.messageType === "system"
                     ? "justify-center"
                     : isOwnMessage(msg)
                     ? "justify-end"
                     : "justify-start"
                 }`}
               >
-                {/* System/Admin Messages - Centered */}
-                {(msg.messageType === "system" || msg.messageType === "admin") ? (
+                {/* System Messages - Centered */}
+                {(msg.messageType === "system") ? (
                   <div className="max-w-[80%]">
                     <div
                       className={`rounded-lg p-3 ${
@@ -364,19 +348,11 @@ export default function ChatContainer({ roomId, className, onRoomChange }: ChatC
                       }`}
                     >
                       <div className="flex items-center gap-2 mb-1">
-                        {msg.messageType === "system" ? (
-                          <Megaphone className="w-4 h-4 text-blue-600" />
-                        ) : (
-                          <Shield className="w-4 h-4 text-red-600" />
-                        )}
-                        <span className={`text-xs font-bold ${
-                          msg.messageType === "system" ? "text-blue-800" : "text-red-800"
-                        }`}>
-                          {msg.messageType === "system" ? "System Message" : "Admin Announcement"}
+                        <Megaphone className="w-4 h-4 text-blue-600" />
+                        <span className="text-xs font-bold text-blue-800">
+                          System Message
                         </span>
-                        <span className={`text-xs ml-auto ${
-                          msg.messageType === "system" ? "text-blue-600" : "text-red-600"
-                        }`}>
+                        <span className="text-xs ml-auto text-blue-600">
                           {formatTime(msg.createdAt)}
                         </span>
                       </div>
@@ -489,17 +465,7 @@ export default function ChatContainer({ roomId, className, onRoomChange }: ChatC
                           {/* Action buttons */}
                           {!isOwnMessage(msg) && isAuthenticated && (
                             <div className="flex gap-1 mt-0.5">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleReportMessage(msg._id)}
-                                className="h-5 px-1.5 text-[10px] text-red-600 hover:text-red-700 hover:bg-red-50"
-                                title="Report message"
-                              >
-                                <AlertCircle className="w-3 h-3 mr-0.5" />
-                                Report
-                              </Button>
-                              {(currentUser?.isAdmin || currentUser?.isModerator) && (
+                              {(currentUser?.isAdmin === true || currentUser?.isModerator === true) && (
                                 <Button
                                   size="sm"
                                   variant="ghost"

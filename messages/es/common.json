@@ -724,8 +724,7 @@
     "guidelines_title": "Normas del Chat",
     "guideline_1": "Sé respetuoso y amable con todos los usuarios",
     "guideline_2": "No spam, acoso o contenido inapropiado",
-    "guideline_3": "Los mensajes están limitados a 500 caracteres",
-    "guideline_4": "Puedes editar mensajes dentro de 5 minutos después de enviar",
-    "guideline_5": "Reporta mensajes inapropiados para ayudar a mantener la comunidad segura"
+    "guideline_3": "Los mensajes están limitados a 140 caracteres",
+    "guideline_4": "Los moderadores pueden eliminar mensajes inapropiados para mantener la comunidad segura"
   }
 }

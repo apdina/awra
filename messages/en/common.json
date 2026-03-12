@@ -696,8 +696,7 @@
     "guidelines_title": "Chat Guidelines",
     "guideline_1": "Be respectful and kind to all users",
     "guideline_2": "No spam, harassment, or inappropriate content",
-    "guideline_3": "Messages are limited to 500 characters",
-    "guideline_4": "You can edit messages within 5 minutes of sending",
-    "guideline_5": "Report inappropriate messages to help keep the community safe"
+    "guideline_3": "Messages are limited to 140 characters",
+    "guideline_4": "Moderators can delete inappropriate messages to keep the community safe"
   }
 }

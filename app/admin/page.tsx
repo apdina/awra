@@ -8,7 +8,7 @@ import { useAuth } from '@/components/ConvexAuthProvider';
 import SimpleUserManagement from '@/components/admin/SimpleUserManagement';
 import { triggerCountdownRefresh } from '@/components/SimpleCountdown';
 
-type TabType = 'set-result' | 'set-time' | 'auto-schedule' | 'admin-message' | 'system-message' | 'user-management';
+type TabType = 'set-result' | 'set-time' | 'auto-schedule' | 'system-message' | 'user-management';
 
 function UnifiedAdminDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('set-result');
@@ -21,9 +21,6 @@ function UnifiedAdminDashboard() {
   const [message, setMessage] = useState("");
   const [timeLoading, setTimeLoading] = useState(false);
   const [timeMessage, setTimeMessage] = useState("");
-  const [adminMessage, setAdminMessage] = useState("");
-  const [adminMessageLoading, setAdminMessageLoading] = useState(false);
-  const [adminMessageRoom, setAdminMessageRoom] = useState("global");
   const [systemMessage, setSystemMessage] = useState("");
   const [systemMessageLoading, setSystemMessageLoading] = useState(false);
   const [systemMessageRoom, setSystemMessageRoom] = useState("global");
@@ -335,60 +332,8 @@ function UnifiedAdminDashboard() {
     { id: 'set-result' as TabType, label: '🎯 Set Result', color: 'text-green-400' },
     { id: 'set-time' as TabType, label: '⏰ Set Time', color: 'text-blue-400' },
     { id: 'auto-schedule' as TabType, label: '🚀 Auto Schedule', color: 'text-purple-400' },
-    { id: 'admin-message' as TabType, label: '📝 Admin Message', color: 'text-red-400' },
     { id: 'system-message' as TabType, label: '📢 System Message', color: 'text-yellow-400' }
   ];
-
-  // Admin Message Handler
-  const handleAdminMessage = async () => {
-    if (!adminMessage.trim()) {
-      setMessage("Please enter a message");
-      return;
-    }
-
-    setAdminMessageLoading(true);
-    setMessage("");
-    
-    try {
-      // Get CSRF token
-      const csrfResponse = await fetch('/api/csrf-token', {
-        credentials: 'include',
-      });
-      const csrfData = await csrfResponse.json();
-      const csrfToken = csrfData.token;
-
-      const response = await fetch('/api/admin/send-message', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': csrfToken,
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          roomId: adminMessageRoom,
-          content: adminMessage,
-          messageType: "admin",
-          adminSecret: process.env.NEXT_PUBLIC_ADMIN_SECRET || ''
-        })
-      });
-
-      const res = await response.json();
-
-      if (response.ok) {
-        setMessage("✅ Admin message sent successfully!");
-        setTimeout(() => {
-          setMessage("");
-          setAdminMessage("");
-        }, 2000);
-      } else {
-        setMessage(`❌ Error: ${res.error}`);
-      }
-    } catch (error) {
-      setMessage("❌ Failed to send admin message.");
-    }
-
-    setAdminMessageLoading(false);
-  };
 
   // System Message Handler
   const handleSystemMessage = async () => {
@@ -677,59 +622,6 @@ function UnifiedAdminDashboard() {
               <p className="text-xs text-gray-500 text-center">
                 Creates next draw 24 hours from now (skipping Sundays if enabled)
               </p>
-
-              {message && (
-                <div className="text-center p-3 rounded bg-gray-900">
-                  {message}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Admin Message Tab */}
-          {activeTab === 'admin-message' && (
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold text-red-400">Send Admin Message</h2>
-              
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-gray-400 mb-2">Room</label>
-                  <select 
-                    value={adminMessageRoom}
-                    onChange={(e) => setAdminMessageRoom(e.target.value)}
-                    className="w-full p-4 rounded bg-gray-900 border border-gray-600 text-white"
-                  >
-                    <option value="global">Global Chat</option>
-                    <option value="draw">Draw Room</option>
-                  </select>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Select where to send the admin message
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-gray-400 mb-2">Admin Message</label>
-                  <textarea 
-                    value={adminMessage}
-                    onChange={(e) => setAdminMessage(e.target.value)}
-                    placeholder="Enter admin investigation message..."
-                    className="w-full p-4 rounded bg-gray-900 border border-gray-600 text-white h-32 resize-none"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    This message will appear as an admin message in chat
-                  </p>
-                </div>
-              </div>
-
-              <button 
-                onClick={handleAdminMessage}
-                disabled={adminMessageLoading || !adminMessage.trim()}
-                className={`w-full p-4 rounded font-bold text-xl transition-colors ${
-                  adminMessageLoading ? 'bg-gray-600 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'
-                }`}
-              >
-                {adminMessageLoading ? 'Sending...' : '📝 Send Admin Message'}
-              </button>
 
               {message && (
                 <div className="text-center p-3 rounded bg-gray-900">

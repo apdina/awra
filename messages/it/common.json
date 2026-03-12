@@ -650,8 +650,7 @@
     "guidelines_title": "Linee Guida della Chat",
     "guideline_1": "Sii rispettoso e gentile con tutti gli utenti",
     "guideline_2": "Niente spam, molestie o contenuti inappropriati",
-    "guideline_3": "I messaggi sono limitati a 500 caratteri",
-    "guideline_4": "Puoi modificare i messaggi entro 5 minuti dall'invio",
-    "guideline_5": "Segnala messaggi inappropriati per aiutare a mantenere la comunità sicura"
+    "guideline_3": "I messaggi sono limitati a 140 caratteri",
+    "guideline_4": "I moderatori possono eliminare i messaggi inappropriati per mantenere la comunità sicura"
   }
 }

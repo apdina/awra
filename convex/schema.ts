@@ -64,16 +64,12 @@ export const chatMessages = defineTable({
   userId: v.optional(v.id("userProfiles")), // Optional for system messages
   roomId: v.string(), // "global", "draw_123", etc.
   content: v.string(),
-  messageType: v.union(v.literal("text"), v.literal("system"), v.literal("winner"), v.literal("admin"), v.literal("investigation")),
+  messageType: v.union(v.literal("text"), v.literal("system"), v.literal("winner")),
   
   // Moderation
   isDeleted: v.boolean(),
   isEdited: v.boolean(),
   editedAt: v.optional(v.number()),
-  reportCount: v.optional(v.number()), // Number of times reported
-  reportedBy: v.optional(v.array(v.id("userProfiles"))), // Users who reported this message
-  lastReportedAt: v.optional(v.number()), // Timestamp of last report
-  lastReportReason: v.optional(v.string()), // Reason from last report
   deletedReason: v.optional(v.string()), // Why message was deleted
   
   // Timestamps
