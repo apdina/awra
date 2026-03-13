@@ -98,11 +98,10 @@ export async function getCurrentDrawConvex(): Promise<Draw> {
       };
     } else {
       // Fallback if no draws exist
-      const today = new Date().toLocaleDateString('en-GB', {
-        day: '2-digit',
-        month: '2-digit', 
-        year: 'numeric'
-      }).replace(/\//g, '/');
+      const today = (() => {
+        const now = new Date();
+        return `${String(now.getUTCDate()).padStart(2, '0')}/${String(now.getUTCMonth() + 1).padStart(2, '0')}/${now.getUTCFullYear()}`;
+      })();
       return {
         id: "mock-draw-1",
         draw_date: today,
@@ -114,11 +113,10 @@ export async function getCurrentDrawConvex(): Promise<Draw> {
   } catch (error) {
     console.error('Failed to fetch current draw from Convex:', error);
     // Return fallback data instead of throwing
-    const today = new Date().toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: '2-digit', 
-      year: 'numeric'
-    }).replace(/\//g, '/');
+    const today = (() => {
+      const now = new Date();
+      return `${String(now.getUTCDate()).padStart(2, '0')}/${String(now.getUTCMonth() + 1).padStart(2, '0')}/${now.getUTCFullYear()}`;
+    })();
     return {
       id: "fallback-draw",
       draw_date: today,

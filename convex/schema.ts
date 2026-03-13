@@ -36,6 +36,7 @@ export const userProfiles = defineTable({
   totalCoinsFromVideos: v.optional(v.number()), // Lifetime coins from videos
   lastVideoWatchAt: v.optional(v.number()), // Last video watch timestamp
   videosWatchedToday: v.optional(v.number()), // Videos watched today (resets daily)
+  lastChatVideoWatchAt: v.optional(v.number()), // Last video watch for chat message reset
   
   // Rate limiting (built-in, no Redis needed)
   lastMessageAt: v.optional(v.number()), // Last chat message timestamp
@@ -64,13 +65,19 @@ export const chatMessages = defineTable({
   userId: v.optional(v.id("userProfiles")), // Optional for system messages
   roomId: v.string(), // "global", "draw_123", etc.
   content: v.string(),
-  messageType: v.union(v.literal("text"), v.literal("system"), v.literal("winner")),
+  messageType: v.union(v.literal("text"), v.literal("system"), v.literal("winner"), v.literal("admin")),
   
   // Moderation
   isDeleted: v.boolean(),
   isEdited: v.boolean(),
   editedAt: v.optional(v.number()),
   deletedReason: v.optional(v.string()), // Why message was deleted
+  
+  // Reporting system
+  reportCount: v.optional(v.number()),
+  reportedBy: v.optional(v.array(v.string())),
+  lastReportedAt: v.optional(v.number()),
+  lastReportReason: v.optional(v.string()),
   
   // Timestamps
   createdAt: v.number(),

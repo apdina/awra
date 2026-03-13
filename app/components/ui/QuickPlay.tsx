@@ -119,9 +119,10 @@ export const QuickPlay = ({ isAuthenticated = false, onClose }: QuickPlayProps) 
     try {
       console.log("Purchasing ticket...");
       // Get current draw date and time (format: DD/MM/YYYY and HH:MM)
+      // Use UTC to match backend calculations
       const now = new Date();
-      const drawDate = now.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
-      const drawTime = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+      const drawDate = `${String(now.getUTCDate()).padStart(2, '0')}/${String(now.getUTCMonth() + 1).padStart(2, '0')}/${now.getUTCFullYear()}`;
+      const drawTime = `${String(now.getUTCHours()).padStart(2, '0')}:${String(now.getUTCMinutes()).padStart(2, '0')}`;
       
       // Transform bets to match the expected format
       const transformedBets = bets.map(bet => ({

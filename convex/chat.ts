@@ -48,16 +48,18 @@ export const sendMessage = mutation({
       throw new Error(`Room is full. Maximum ${roomConfig.maxUsers} users allowed.`);
     }
 
-    // Check user's message count in this room
+    // Check user's message count in this room (only count messages after last video watch)
     const messages = await ctx.db
       .query("chatMessages")
       .withIndex("by_user_created", (q) => q.eq("userId", args.userId))
       .filter((q) => q.and(
         q.eq(q.field("roomId"), args.roomId),
-        q.eq(q.field("isDeleted"), false)
+        q.eq(q.field("isDeleted"), false),
+        q.gt(q.field("createdAt"), userProfile.lastChatVideoWatchAt || 0)
       ))
       .collect();
     const userMessageCount = messages.length;
+    console.log("[chat:sendMessage] User:", args.userId, "lastChatVideoWatchAt:", userProfile.lastChatVideoWatchAt, "messageCount:", userMessageCount);
 
     if (hasUserReachedMessageLimit(userMessageCount, roomConfig.maxMessagesPerUser || 3)) {
       throw new Error("VIDEO_AD_REQUIRED");

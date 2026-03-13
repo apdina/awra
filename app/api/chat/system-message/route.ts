@@ -81,12 +81,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Send the system message with authenticated user ID
-    const result = await convex.mutation(api.systemMessages.sendSystemMessage, {
-      roomId,
-      messageType,
-      customMessage,
+    // Send the system message using the regular sendMessage function
+    const result = await convex.mutation(api.chat.sendMessage, {
       userId: user._id,
+      roomId,
+      content: customMessage || `${messageType} notification`,
+      messageType: "system",
     });
 
     return NextResponse.json({
@@ -106,8 +106,13 @@ export async function GET(request: NextRequest) {
   try {
     const convex = getConvexClient();
     
-    // Get available system message types (no auth required for reading types)
-    const messageTypes = await convex.query(api.systemMessages.getSystemMessageTypes);
+    // Return available system message types (static list)
+    const messageTypes = [
+      { type: 'winner', description: 'Winning number announcement' },
+      { type: 'maintenance', description: 'System maintenance' },
+      { type: 'announcement', description: 'General announcement' },
+      { type: 'warning', description: 'System warning' },
+    ];
 
     return NextResponse.json({
       success: true,

@@ -59,6 +59,8 @@ export default function WinningNumbersContent({
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [hasMore, setHasMore] = useState(false);
+  const [historyPage, setHistoryPage] = useState(1);
+  const ITEMS_PER_PAGE = 6;
 
   // Handle video ad completion
   const handleVideoAdComplete = () => {
@@ -135,6 +137,29 @@ export default function WinningNumbersContent({
       fetchWinningNumbers(currentPage - 1);
     }
   }, [loading, currentPage, fetchWinningNumbers]);
+
+  // History pagination handlers
+  const handleHistoryLoadMore = useCallback(() => {
+    const maxPages = Math.ceil(winningNumbers.length / ITEMS_PER_PAGE);
+    if (historyPage < maxPages) {
+      setHistoryPage(historyPage + 1);
+    }
+  }, [historyPage, winningNumbers.length]);
+
+  const handleHistoryLoadPrevious = useCallback(() => {
+    if (historyPage > 1) {
+      setHistoryPage(historyPage - 1);
+    }
+  }, [historyPage]);
+
+  // Get paginated history numbers
+  const getHistoryNumbers = useCallback(() => {
+    const startIndex = (historyPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return winningNumbers.slice(startIndex, endIndex);
+  }, [historyPage, winningNumbers]);
+
+  const historyMaxPages = Math.ceil(winningNumbers.length / ITEMS_PER_PAGE);
 
   return (
     <>
@@ -239,7 +264,7 @@ export default function WinningNumbersContent({
           )}
           
           <WinningNumbersTable 
-            winningNumbers={filteredNumbers}
+            winningNumbers={filteredNumbers.length !== winningNumbers.length ? filteredNumbers : getHistoryNumbers()}
             title={filteredNumbers.length !== winningNumbers.length ? t('winning_numbers.search_results') : t('winning_numbers.winning_numbers_history')}
           />
           
@@ -247,23 +272,23 @@ export default function WinningNumbersContent({
           {!loading && filteredNumbers.length === winningNumbers.length && (
             <div className="mt-6 flex items-center justify-center gap-4">
               <button
-                onClick={handleLoadPrevious}
-                disabled={currentPage === 1}
+                onClick={handleHistoryLoadPrevious}
+                disabled={historyPage === 1}
                 className="px-6 py-2 bg-purple-600 hover:bg-purple-500 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg font-semibold transition-colors"
               >
-                ← Previous
+                {t('winning_numbers.previous')}
               </button>
               
               <span className="text-gray-300">
-                Page {currentPage} of {totalPages}
+                Page {historyPage} of {historyMaxPages}
               </span>
               
               <button
-                onClick={handleLoadMore}
-                disabled={!hasMore}
+                onClick={handleHistoryLoadMore}
+                disabled={historyPage === historyMaxPages}
                 className="px-6 py-2 bg-purple-600 hover:bg-purple-500 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg font-semibold transition-colors"
               >
-                Next →
+                {t('winning_numbers.next')}
               </button>
             </div>
           )}

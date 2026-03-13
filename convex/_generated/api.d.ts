@@ -37,6 +37,7 @@ import type * as timezoneConfig from "../timezoneConfig.js";
 import type * as unifiedTickets from "../unifiedTickets.js";
 import type * as userManagement from "../userManagement.js";
 import type * as validators from "../validators.js";
+import type * as videoAds from "../videoAds.js";
 
 import type {
   ApiFromModules,
@@ -74,6 +75,7 @@ declare const fullApi: ApiFromModules<{
   unifiedTickets: typeof unifiedTickets;
   userManagement: typeof userManagement;
   validators: typeof validators;
+  videoAds: typeof videoAds;
 }>;
 
 /**

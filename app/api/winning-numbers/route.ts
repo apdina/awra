@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getWinningNumbersHybrid } from '@/lib/convex-data-fetching';
+import { logger } from '@/lib/logger';
 import { 
   getWinningNumbersCache, 
   setWinningNumbersCache, 
@@ -84,10 +85,11 @@ export async function GET(request: NextRequest) {
       
       // Convert Convex data to expected format
       const formattedEntries = paginatedDraws.map((draw: any) => {
-        // Parse date from DD/MM/YYYY format
+        // Parse date from DD/MM/YYYY format and get day of week in UTC
         const [day, month, year] = draw.draw_date.split('/');
-        const dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-        const dayOfWeek = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
+        const dateObj = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day)));
+        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const dayOfWeek = dayNames[dateObj.getUTCDay()];
 
         return {
           day: dayOfWeek,

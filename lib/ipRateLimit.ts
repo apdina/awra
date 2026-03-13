@@ -38,8 +38,14 @@ export function getClientIp(request: NextRequest): string {
     return cfIp;
   }
   
-  // Fallback to connection IP
-  return request.ip || 'unknown';
+  // Try Vercel geo data (cast to any to access Vercel-specific properties)
+  const geo = (request as any).geo?.ip;
+  if (geo) {
+    return geo;
+  }
+  
+  // Fallback to unknown
+  return 'unknown';
 }
 
 /**

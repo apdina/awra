@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ConvexHttpClient } from 'convex/browser';
 import { api } from '@/convex/_generated/api';
+import { logger } from '@/lib/logger';
 
 // Helper function to get current admin user from session
 async function getCurrentAdmin(request: NextRequest) {

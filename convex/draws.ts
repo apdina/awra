@@ -118,7 +118,8 @@ async function processDrawForCountdown(draw: any, ctx: any, now: number): Promis
   let targetDrawTime = drawTime;
   let nextDrawDate = draw.drawId;
   let nextDrawTime = draw.draw_time;
-  let dayOfWeek = drawTime.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' });
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  let dayOfWeek = dayNames[drawTime.getUTCDay()];
   
   if (drawTime.getTime() <= now) {
     // Calculate next draw with Sunday logic
@@ -153,7 +154,7 @@ async function processDrawForCountdown(draw: any, ctx: any, now: number): Promis
     const nextYear = nextDate.getUTCFullYear();
     nextDrawDate = `${nextDay}/${nextMonth}/${nextYear}`;
     nextDrawTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-    dayOfWeek = nextDate.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' });
+    dayOfWeek = dayNames[nextDate.getUTCDay()];
   }
   
   const diff = targetDrawTime.getTime() - now;
@@ -856,7 +857,8 @@ async function createNextDraw(ctx: any, now: number, baseDate?: Date) {
     updatedAt: now,
   });
 
-  const dayName = nextDate.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' });
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const dayName = dayNames[nextDate.getUTCDay()];
   
   return {
     success: true,

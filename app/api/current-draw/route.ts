@@ -32,11 +32,10 @@ export async function GET() {
     // Return fallback data
     const fallbackData = {
       id: "fallback-draw-error",
-      draw_date: new Date().toLocaleDateString('en-GB', {
-        day: '2-digit',
-        month: '2-digit', 
-        year: 'numeric'
-      }).replace(/\//g, '/'),
+      draw_date: (() => {
+        const now = new Date();
+        return `${String(now.getUTCDate()).padStart(2, '0')}/${String(now.getUTCMonth() + 1).padStart(2, '0')}/${now.getUTCFullYear()}`;
+      })(),
       draw_time: "21:40",
       winning_number: null,
       is_processed: false

@@ -9,7 +9,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { logger } from '@/lib/logger';
-import { Send, Edit2, Trash2, Users, Megaphone, Heart, Shield } from "lucide-react";
+import { Send, Edit2, Trash2, Users, Megaphone, Heart, Shield, AlertCircle } from "lucide-react";
 import { getUserAvatarUrl, getInitials } from "@/lib/avatarUtils";
 import { Id } from "@/convex/_generated/dataModel";
 
@@ -244,7 +244,7 @@ export default function ChatContainerSimple({ roomId, className }: ChatContainer
           </div>
         ) : (
           <div className="space-y-4">
-            {messagesData.messages.map((msg) => (
+            {messagesData.messages.map((msg: any) => (
               <div
                 key={msg._id}
                 className={`flex gap-3 ${
@@ -256,7 +256,7 @@ export default function ChatContainerSimple({ roomId, className }: ChatContainer
                 }`}
               >
                 {/* System Messages - Centered */}
-                {(msg.messageType === "system") ? (
+                {msg.messageType === "system" ? (
                   <div className="max-w-[80%]">
                     <div
                       className={`rounded-lg p-3 ${
@@ -271,9 +271,6 @@ export default function ChatContainerSimple({ roomId, className }: ChatContainer
                           System Message
                         </span>
                         <span className="text-xs ml-auto text-blue-600">
-                          {formatTime(msg.createdAt)}
-                        </span>
-                        }`}>
                           {formatTime(msg.createdAt)}
                         </span>
                       </div>

@@ -132,7 +132,7 @@ export function csrfProtect(
     if (!csrfToken) {
       try {
         const formData = await request.formData();
-        csrfToken = formData.get('csrf_token')?.toString();
+        csrfToken = formData.get('csrf_token')?.toString() || null;
       } catch {
         // Not form data, continue
       }

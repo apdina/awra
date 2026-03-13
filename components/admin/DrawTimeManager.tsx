@@ -151,7 +151,7 @@ export default function DrawTimeManager({ adminSecret }: DrawTimeManagerProps) {
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
             <span className="text-gray-300">Current Draw Time:</span>
-            <span className="text-white font-mono">{config.defaultDrawTime} UTC</span>
+            <span className="text-white font-mono">{config.defaultDrawTime}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-300">Sunday Exclusion:</span>
@@ -167,7 +167,7 @@ export default function DrawTimeManager({ adminSecret }: DrawTimeManagerProps) {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-300">Next Draw Time:</span>
-                <span className="text-white font-mono">{config.nextDrawTime} UTC</span>
+                <span className="text-white font-mono">{config.nextDrawTime}</span>
               </div>
             </>
           )}
@@ -182,7 +182,7 @@ export default function DrawTimeManager({ adminSecret }: DrawTimeManagerProps) {
       <div className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">
-            Default Draw Time (UTC)
+            Default Draw Time
           </label>
           <input
             type="time"

@@ -126,36 +126,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     };
 
     // Delete old picture first (single photo per user requirement)
-    const existingUser = await convex.query(api.profilePicture.getProfilePicture, {
-      userId: userId as any,
+    const existingUser = await convex.query(api.native_auth.getCurrentUserByToken, {
+      token: userId as any,
     });
-
-    if (existingUser?.type === 'personal') {
-      logger.log(`🗑️ Deleting old profile picture for user ${userId}`);
-      try {
-        await convex.mutation(api.profilePicture.deleteProfilePicture, {
-          userId: userId as any,
-        });
-      } catch (deleteError) {
-        logger.warn('Warning: Could not delete old picture:', deleteError);
-        // Continue anyway
-      }
-    }
 
     // Update user profile picture in database
     try {
-      const result = await convex.mutation(api.profilePicture.updateProfilePicture, {
-        userId: userId as any,
-        type: 'personal',
-        urls,
-        storageName,  // New field: proper naming
-        originalFileName: file.name,
-        fileSize: cleanedFile.size,  // Use cleaned file size
-        mimeType: file.type,
-        width: dimensions.width,
-        height: dimensions.height,
-        aspectRatio: dimensions.aspectRatio,
-        metadataStripped: true,  // Confirm metadata was stripped
+      const result = await convex.mutation(api.native_auth.updateProfile, {
+        token: userId as any,
+        userPhoto: dataUrl,
+        usePhoto: true,
       });
 
       logProfilePictureAction('upload', userId, {

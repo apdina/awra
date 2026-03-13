@@ -9,10 +9,10 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { logger } from '@/lib/logger';
-import { Send, Edit2, Trash2, Users, Megaphone, Shield, MessageCircle } from "lucide-react";
+import { Send, Edit2, Trash2, Users, Megaphone, Shield, MessageCircle, AlertCircle, Play } from "lucide-react";
 import { getUserAvatarUrl, getInitials } from "@/lib/avatarUtils";
 import AdminSystemMessagePanel from "./admin-system-message-panel";
-import VideoAdModal from "./VideoAdModal";
+import VideoAdModal from "../account/VideoAdModal";
 import RoomSelector from "./RoomSelector";
 
 // Types from Convex schema
@@ -24,12 +24,12 @@ interface ChatMessage {
   userId?: Id<"userProfiles">;
   roomId: string;
   content: string;
-  messageType: "text" | "system" | "winner";
+  messageType: "text" | "system" | "winner" | "admin";
   isDeleted: boolean;
   isEdited: boolean;
   editedAt?: number;
   reportCount?: number;
-  reportedBy?: Id<"userProfiles">[];
+  reportedBy?: string[];
   lastReportedAt?: number;
   lastReportReason?: string;
   deletedReason?: string;
@@ -60,6 +60,8 @@ export default function ChatContainer({ roomId, className, onRoomChange }: ChatC
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
   const [showVideoAd, setShowVideoAd] = useState(false);
+  const [pendingMessage, setPendingMessage] = useState<string | null>(null);
+  const [messageQueued, setMessageQueued] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const typingDebounceRef = useRef<NodeJS.Timeout | undefined>(undefined);
@@ -160,30 +162,28 @@ export default function ChatContainer({ roomId, className, onRoomChange }: ChatC
         messageType: "text",
       });
       setMessage("");
-      await setTypingStatus({ isTyping: false, roomId, userId: authUser._id });
-      
-      // Force scroll to bottom after sending message (use RAF for reliability)
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          const container = messagesContainerRef.current;
-          if (container) {
-            container.scrollTop = container.scrollHeight;
-          }
-        });
-      });
-    } catch (error: any) {
-      logger.error("Failed to send message:", error);
+      setEditingMessage(null);
+      setEditContent("");
+      setError(null);
+    } catch (err: any) {
+      logger.error("Failed to send message:", err);
       
       // Check if user needs to watch video ad
-      if (error.message === "VIDEO_AD_REQUIRED") {
-        setShowVideoAd(true);
-        setError("Message limit reached! Watch a video ad to earn more messages.");
-        setTimeout(() => setError(null), 5000);
-        return;
-      }
+      const errorMessage = err.message || err.toString();
+      console.log("[ChatContainer] Error message:", errorMessage);
       
-      setError(error.message || "Failed to send message");
-      setTimeout(() => setError(null), 5000);
+      if (errorMessage.includes("VIDEO_AD_REQUIRED")) {
+        // Queue the message and show video ad
+        console.log("[ChatContainer] VIDEO_AD_REQUIRED detected, showing modal");
+        setPendingMessage(message.trim());
+        setMessageQueued(true);
+        setShowVideoAd(true);
+        setError("Message queued! Watch a video ad to send your message.");
+        setTimeout(() => setError(null), 5000);
+      } else {
+        setError("Failed to send message. Please try again.");
+        setTimeout(() => setError(null), 5000);
+      }
     }
   };
 
@@ -288,26 +288,7 @@ export default function ChatContainer({ roomId, className, onRoomChange }: ChatC
             <h3 className="font-semibold text-white">Global Chat</h3>
           )}
         </div>
-        <div className="flex items-center gap-2 text-sm text-slate-300">
-          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-          <Users className="w-4 h-4" />
-          {onlineUsersData?.length || 0} online
-        </div>
       </div>
-
-      {/* Error/Success messages */}
-      {error && (
-        <div className="p-3 bg-red-50 border-b border-red-200 text-red-700 text-sm flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          {error}
-        </div>
-      )}
-      {successMessage && (
-        <div className="p-3 bg-green-50 border-b border-green-200 text-green-700 text-sm flex items-center gap-2">
-          <Shield className="w-4 h-4 flex-shrink-0" />
-          {successMessage}
-        </div>
-      )}
 
       {/* Messages */}
       <div 
@@ -578,6 +559,25 @@ export default function ChatContainer({ roomId, className, onRoomChange }: ChatC
       {/* Message input */}
       <form onSubmit={handleSendMessage} className="p-4 border-t bg-white">
         <div className="flex flex-col gap-2">
+          {messageQueued && (
+            <div className="bg-blue-900/50 border border-blue-500 text-blue-200 text-sm p-3 rounded-lg flex items-center gap-2">
+              <Play className="w-4 h-4" />
+              <span>Message queued! Watch the video ad to send your message.</span>
+            </div>
+          )}
+          
+          {error && (
+            <div className="bg-red-900/50 border border-red-500 text-red-200 text-sm p-3 rounded-lg">
+              {error}
+            </div>
+          )}
+          
+          {successMessage && (
+            <div className="bg-green-900/50 border border-green-500 text-green-200 text-sm p-3 rounded-lg">
+              {successMessage}
+            </div>
+          )}
+          
           <div className="flex gap-2">
             <div className="flex-1 relative">
               <Input
@@ -632,12 +632,46 @@ export default function ChatContainer({ roomId, className, onRoomChange }: ChatC
           </div>
         </div>
       </form>
-
-      {/* Video Ad Modal */}
+      
+      {/* Video Ad Modal - Fixed overlay outside main container */}
       <VideoAdModal 
         isOpen={showVideoAd} 
-        onClose={() => setShowVideoAd(false)}
-        onReward={handleVideoAdReward}
+        onClose={() => {
+          setShowVideoAd(false);
+          setMessageQueued(false);
+          setPendingMessage(null);
+        }}
+        reason="chat"
+        onChatSuccess={() => {
+          console.log("[ChatContainer] Video ad success callback triggered");
+          // Send the pending message after video is watched
+          if (pendingMessage && authUser?._id) {
+            console.log("[ChatContainer] Sending pending message:", pendingMessage);
+            sendMessageMutation({
+              userId: authUser._id,
+              roomId,
+              content: pendingMessage.trim(),
+              messageType: "text",
+            }).then(() => {
+              console.log("[ChatContainer] Pending message sent successfully");
+              // Clear the pending message and input
+              setPendingMessage(null);
+              setMessageQueued(false);
+              setMessage("");
+              setError(null);
+              setSuccessMessage("Message sent successfully!");
+              setTimeout(() => setSuccessMessage(null), 3000);
+            }).catch((err) => {
+              logger.error("Failed to send pending message:", err);
+              setError("Failed to send message. Please try again.");
+              setTimeout(() => setError(null), 5000);
+            });
+          } else {
+            console.log("[ChatContainer] No pending message or authUser");
+            setMessageQueued(false);
+            setPendingMessage(null);
+          }
+        }}
       />
     </div>
   );

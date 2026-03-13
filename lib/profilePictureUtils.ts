@@ -93,7 +93,6 @@ export function generatePlaceholderAvatar(
   return {
     thumbnail: svgDataUrl,
     medium: svgDataUrl,
-    large: svgDataUrl,
   };
 }
 
@@ -126,21 +125,18 @@ export function createOAuthPicture(
     urls = {
       thumbnail: `${pictureUrl}?sz=150`,
       medium: `${pictureUrl}?sz=300`,
-      large: `${pictureUrl}?sz=600`,
     };
   } else if (oauthProvider === 'facebook') {
     // Facebook supports width/height parameters
     urls = {
       thumbnail: `${pictureUrl}?width=150&height=150`,
       medium: `${pictureUrl}?width=300&height=300`,
-      large: `${pictureUrl}?width=600&height=600`,
     };
   } else {
     // Fallback: use same URL for all sizes
     urls = {
       thumbnail: pictureUrl,
       medium: pictureUrl,
-      large: pictureUrl,
     };
   }
 
@@ -236,11 +232,11 @@ export async function getImageDimensions(
  */
 export function getProfilePictureUrl(
   profilePicture: ProfilePicture | undefined,
-  size: 'thumbnail' | 'medium' | 'large' = 'medium'
+  size: 'thumbnail' | 'medium' = 'medium'
 ): string {
   if (!profilePicture) {
     // Return a default placeholder if no picture
-    return `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${size === 'thumbnail' ? 150 : size === 'medium' ? 300 : 600}' height='${size === 'thumbnail' ? 150 : size === 'medium' ? 300 : 600}'%3E%3Crect fill='%23ccc' width='100%25' height='100%25'/%3E%3C/svg%3E`;
+    return `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${size === 'thumbnail' ? 150 : 300}' height='${size === 'thumbnail' ? 150 : 300}'%3E%3Crect fill='%23ccc' width='100%25' height='100%25'/%3E%3C/svg%3E`;
   }
 
   return profilePicture.urls[size];
