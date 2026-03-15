@@ -36,12 +36,13 @@ export function generateCsrfToken(sessionId: string): string {
 /**
  * Validate a CSRF token
  * 
- * ✅ FIXED: Now validates full HMAC output (64 chars)
+ * Enforces secure HMAC token validation for all platforms
  */
 export function validateCsrfToken(token: string, sessionId: string): boolean {
   if (!token || !sessionId) return false;
   
   try {
+    // Only accept secure HMAC tokens (format: random.timestamp.hmac)
     const parts = token.split('.');
     if (parts.length !== 3) return false;
     
@@ -58,7 +59,7 @@ export function validateCsrfToken(token: string, sessionId: string): boolean {
     const data = `${random}.${timestamp}.${sessionId}`;
     const expectedHmac = createHash('sha256')
       .update(data + CSRF_TOKEN_SECRET)
-      .digest('hex'); // ✅ FIXED: Use full HMAC (64 chars)
+      .digest('hex'); // Use full HMAC (64 chars)
     
     // Compare HMAC values using timing-safe comparison
     return receivedHmac === expectedHmac;

@@ -1,6 +1,5 @@
-// Supabase server stub for backward compatibility during Convex migration
+// Supabase has been removed from this project.
 
 export function createSupabaseServerClient(request?: any, response?: any) {
-  console.warn('⚠️ createSupabaseServerClient() called - Supabase is disabled, using Convex instead');
-  throw new Error('Supabase is disabled. Use Convex for server-side operations.');
+  throw new Error('Supabase is removed. Use Convex services directly.');
 }

@@ -109,7 +109,6 @@ export const getUserAvatar = query({
 
 /**
  * Update user's avatar
- * Also optionally syncs to Supabase user_metadata
  */
 export const updateUserAvatar = mutation({
   args: {
@@ -140,8 +139,6 @@ export const updateUserAvatar = mutation({
       avatarName: args.avatarName,
       avatarType: args.avatarType,
       imagePath,
-      // Note: Frontend should also update Supabase user_metadata
-      // supabase.auth.updateUser({ data: { avatar: args.avatarName, avatar_type: args.avatarType } })
     };
   },
 });

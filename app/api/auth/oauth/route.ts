@@ -3,6 +3,7 @@ import { ConvexHttpClient } from 'convex/browser';
 import { api } from '@/convex/_generated/api';
 import { cookies } from 'next/headers';
 import { SignJWT } from 'jose';
+import { logger } from "@/lib/logger";
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 

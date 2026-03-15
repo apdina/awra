@@ -38,25 +38,24 @@ export default function ChatSidebar({
   const [showRoomSelector, setShowRoomSelector] = useState(false);
 
   const { isConnected } = useChat();
-  const activeRooms = useQuery(api.chatRooms.getActiveRooms);
+  const globalRoom = useQuery(api.chatRooms.getRoomByStringId, { roomId: 'global' });
   // Only query online users if we have a selected room
   const onlineUsers = selectedRoomId ? useQuery(api.chat.getOnlineUsers, { roomId: selectedRoomId }) : null;
 
   useEffect(() => {
-    if (activeRooms !== undefined) {
-      // Map Convex data (_id) to ChatRoom interface (id)
-      const mappedRooms = activeRooms.map(room => ({
-        id: room._id,
-        name: room.name,
-        description: room.description,
-        type: room.type,
-        userCount: room.userCount,
-        isActive: room.isActive
-      }));
-      setRooms(mappedRooms);
+    if (globalRoom) {
+      setRooms([
+        {
+          id: globalRoom._id,
+          name: globalRoom.name,
+          description: globalRoom.description,
+          type: globalRoom.type,
+          isActive: globalRoom.isActive,
+        },
+      ]);
       setIsLoading(false);
     }
-  }, [activeRooms]);
+  }, [globalRoom]);
 
   const getRoomIcon = (type: ChatRoom["type"]) => {
     switch (type) {

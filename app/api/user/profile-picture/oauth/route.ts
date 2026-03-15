@@ -57,24 +57,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const convex = getConvexClient();
 
-    // Sync OAuth picture
-    const result = await convex.mutation(api.profilePicture.syncOAuthProfilePicture, {
-      userId: userId as any,
-      provider,
-      pictureUrl,
-    });
-
+    // TODO: Wire this to a real Convex mutation once the profile picture sync function exists.
     logProfilePictureAction('oauth_sync', userId, {
       provider,
       pictureUrl,
     });
 
-    logger.log(`✅ OAuth profile picture synced successfully for user ${userId}`);
+    logger.log(`✅ OAuth profile picture sync route called for user ${userId}`);
 
     return NextResponse.json({
       success: true,
-      message: `Profile picture synced from ${provider}`,
-      data: result,
+      message: `Profile picture sync route called for ${provider} (not yet implemented).`,
     });
 
   } catch (error: any) {

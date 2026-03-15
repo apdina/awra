@@ -13,6 +13,7 @@ import { CHAT_ROOMS, getChatRoom, isRoomFull, hasUserReachedMessageLimit } from 
 // Constants
 const MAX_MESSAGES_PER_FETCH = 50;
 const EDIT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+const MESSAGES_BEFORE_AD = 3; // Users can send 3 messages before video ad
 
 // Send a new message (with built-in rate limiting)
 export const sendMessage = mutation({
@@ -59,21 +60,10 @@ export const sendMessage = mutation({
       ))
       .collect();
     const userMessageCount = messages.length;
-    console.log("[chat:sendMessage] User:", args.userId, "lastChatVideoWatchAt:", userProfile.lastChatVideoWatchAt, "messageCount:", userMessageCount);
 
-    if (hasUserReachedMessageLimit(userMessageCount, roomConfig.maxMessagesPerUser || 3)) {
-      throw new Error("VIDEO_AD_REQUIRED");
-    }
-
-    // Built-in rate limiting (no Redis needed!)
-    const rateLimit = checkRateLimit(
-      userProfile.lastMessageAt,
-      rateLimitSchema.chatMessage.windowMs
-    );
-
-    if (!rateLimit.allowed) {
-      const waitSeconds = Math.ceil(rateLimit.waitMs / 1000);
-      throw new Error(`Please wait ${waitSeconds} seconds before sending another message`);
+    // If user has reached message limit, return a video ad requirement response
+    if (userMessageCount >= MESSAGES_BEFORE_AD) {
+      return { success: false, videoAdRequired: true };
     }
 
     // Validate and sanitize message
@@ -111,7 +101,7 @@ export const sendMessage = mutation({
       sessionId,
     });
 
-    return messageId;
+    return { success: true, messageId };
   },
 });
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { invalidateDrawCache } from '@/app/api/current-draw/route';
 import { invalidateWinningNumbersCache } from '@/app/api/winning-numbers/route';
 import { invalidateCurrentDrawCache, invalidateWinningNumbersCache as invalidateWinningNumbersCacheRedis } from '@/lib/redis-cache';
+import { logger } from "@/lib/logger";
 
 /**
  * Admin endpoint to invalidate all caches

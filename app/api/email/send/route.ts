@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sendEmail } from '@/lib/email';
+import { logger } from "@/lib/logger";
 
 /**
  * Email sending API endpoint

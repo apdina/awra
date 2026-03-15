@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateCsrfToken } from '@/lib/csrf';
-// import { createSupabaseServiceClient } from '@/lib/supabase'; // Removed - using Convex
+import { logger } from "@/lib/logger";
 
 const ADMIN_SECRET = process.env.ADMIN_SECRET!;
 
@@ -28,8 +28,7 @@ export async function POST(request: NextRequest) {
       status: 'disabled'
     });
     
-    // All remaining code is commented out since it uses Supabase
-    // This functionality has been removed during migration to Convex
+    // Auto-schedule functionality is disabled pending Convex implementation
     // TODO: Re-implement using Convex when needed
 
   } catch (error) {

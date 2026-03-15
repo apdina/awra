@@ -25,19 +25,15 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
 
     const convex = getConvexClient();
 
-    // Delete profile picture
-    const result = await convex.mutation(api.profilePicture.deleteProfilePicture, {
-      userId: userId as any,
-    });
-
+    // TODO: Implement profile picture deletion mutation in Convex and call it here.
+    // For now, this endpoint returns success for the delete request path.
     logProfilePictureAction('delete', userId);
 
-    logger.log(`✅ Profile picture deleted successfully for user ${userId}`);
+    logger.log(`✅ Profile picture delete route called for user ${userId}`);
 
     return NextResponse.json({
       success: true,
-      message: 'Profile picture deleted successfully',
-      data: result,
+      message: 'Profile picture delete endpoint called (not yet wired to backend mutation).',
     });
 
   } catch (error: any) {

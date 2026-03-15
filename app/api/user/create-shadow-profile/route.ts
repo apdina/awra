@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 // This API route is deprecated since we're using pure Convex auth
 import { NextRequest, NextResponse } from 'next/server';
 

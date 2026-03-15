@@ -119,6 +119,63 @@ export const startVideoWatch = mutation({
   },
 });
 
+// Complete a chat video watch and reset message limit
+export const completeChatVideoWatch = mutation({
+  args: {
+    userId: v.id("userProfiles"), // Required: User ID from client
+    watchId: v.id("videoAdWatches"), // Required: Session ID from startVideoWatch
+    watchDuration: v.number(), // Required: Actual watch duration in seconds
+    completionRate: v.number(), // Required: Completion percentage (0-100)
+  },
+  handler: async (ctx, args) => {
+    console.log("[videoAds:completeChatVideoWatch] Called with userId:", args.userId, "watchId:", args.watchId);
+
+    // Verify user exists
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      console.error("[videoAds:completeChatVideoWatch] User not found:", args.userId);
+      throw new Error("User not found");
+    }
+
+    // Get watch session
+    const watchSession = await ctx.db.get(args.watchId);
+    if (!watchSession || watchSession.userId !== args.userId) {
+      console.error("[videoAds:completeChatVideoWatch] Invalid watch session");
+      throw new Error("Invalid watch session");
+    }
+
+    // Validate completion requirements
+    if (args.completionRate < 80) {
+      throw new Error("Video completion rate too low. Please watch at least 80% of the video.");
+    }
+
+    if (args.watchDuration < 3) {
+      throw new Error("Video watch duration too short. Please watch at least 3 seconds.");
+    }
+
+    // Update user's last chat video watch time to reset message limit
+    await ctx.db.patch(args.userId, {
+      lastChatVideoWatchAt: Date.now(),
+      totalVideosWatched: (user.totalVideosWatched || 0) + 1,
+      lastVideoWatchAt: Date.now(),
+    });
+
+    // Mark the watch session as completed
+    await ctx.db.patch(args.watchId, {
+      completionRate: args.completionRate,
+      rewardClaimed: true,
+    });
+
+    console.log("[videoAds:completeChatVideoWatch] Chat video completed successfully for user:", args.userId);
+
+    return { 
+      success: true, 
+      message: "Chat video completed! You can now send more messages.",
+      newMessageLimit: 3, // Reset to 3 messages
+    };
+  },
+});
+
 // Complete a video watch and update profile with selected special avatar
 export const completeVideoWatch = mutation({
   args: {

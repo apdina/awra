@@ -91,14 +91,19 @@ export default function ChatContainerSimple({ roomId, className }: ChatContainer
 
     try {
       setError(null);
-      await sendMessageMutation({
+      const result = await sendMessageMutation({
         userId: authUser._id,
         roomId,
         content: message.trim(),
         messageType: "text",
       });
-      setMessage("");
-      await setTypingStatus({ isTyping: false, roomId, userId: authUser._id });
+
+      if (result?.videoAdRequired) {
+        setError("Message limit reached. Watch a short video to continue.");
+      } else {
+        setMessage("");
+        await setTypingStatus({ isTyping: false, roomId, userId: authUser._id });
+      }
     } catch (error: any) {
       logger.error("Failed to send message:", error);
       setError(error.message || "Failed to send message");

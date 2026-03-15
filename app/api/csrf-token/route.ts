@@ -17,18 +17,9 @@ export async function GET(request: NextRequest) {
     const userAgent = request.headers.get('user-agent') || '';
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(userAgent);
     
-    let token = '';
-    
-    if (isMobile) {
-      logger.log('📱 Mobile device detected - generating simple token');
-      // For mobile, generate a simple timestamp-based token
-      const timestamp = Date.now().toString();
-      const random = Math.random().toString(36).substring(2, 8);
-      token = `${timestamp}-${random}`;
-    } else {
-      logger.log('🖥️ Desktop device detected - using secure token generation');
-      token = getCsrfToken(request);
-    }
+    // Use secure HMAC token generation for all platforms
+    logger.log(isMobile ? '📱 Mobile device detected - using secure token generation' : '🖥️ Desktop device detected - using secure token generation');
+    const token = getCsrfToken(request);
     
     const response = NextResponse.json({
       token,

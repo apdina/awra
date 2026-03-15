@@ -1,4 +1,4 @@
-// Convex-based data fetching to replace Supabase
+// Convex-based data fetching API
 import { getConvexClient } from "./convex-client";
 import { NextRequest } from "next/server";
 

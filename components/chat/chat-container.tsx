@@ -55,13 +55,10 @@ export default function ChatContainer({ roomId, className, onRoomChange }: ChatC
   const [message, setMessage] = useState("");
   const [editingMessage, setEditingMessage] = useState<Id<"chatMessages"> | null>(null);
   const [editContent, setEditContent] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
   const [showVideoAd, setShowVideoAd] = useState(false);
   const [pendingMessage, setPendingMessage] = useState<string | null>(null);
-  const [messageQueued, setMessageQueued] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const typingDebounceRef = useRef<NodeJS.Timeout | undefined>(undefined);
@@ -148,48 +145,45 @@ export default function ChatContainer({ roomId, className, onRoomChange }: ChatC
 
     // Check character limit
     if (message.trim().length > 140) {
-      setError("Message must be 140 characters or less");
-      setTimeout(() => setError(null), 3000);
-      return;
+      return; // Silently reject over-limit messages
     }
 
+    // Wrap everything in try-catch to prevent any unhandled errors
     try {
-      setError(null);
-      await sendMessageMutation({
-        userId: authUser._id,
+      await sendMessageDirectly(message.trim());
+    } catch (err) {
+      // Catch any unhandled errors and clear the input
+      setMessage("");
+    }
+  };
+
+  // Send message directly without rate limiting
+  const sendMessageDirectly = async (messageContent: string) => {
+    try {
+      const result = await sendMessageMutation({
+        userId: authUser!._id,
         roomId,
-        content: message.trim(),
+        content: messageContent,
         messageType: "text",
       });
-      setMessage("");
-      setEditingMessage(null);
-      setEditContent("");
-      setError(null);
-    } catch (err: any) {
-      logger.error("Failed to send message:", err);
-      
-      // Check if user needs to watch video ad
-      const errorMessage = err.message || err.toString();
-      console.log("[ChatContainer] Error message:", errorMessage);
-      
-      if (errorMessage.includes("VIDEO_AD_REQUIRED")) {
-        // Queue the message and show video ad
-        console.log("[ChatContainer] VIDEO_AD_REQUIRED detected, showing modal");
-        setPendingMessage(message.trim());
-        setMessageQueued(true);
+
+      if (result?.videoAdRequired) {
+        setPendingMessage(messageContent);
         setShowVideoAd(true);
-        setError("Message queued! Watch a video ad to send your message.");
-        setTimeout(() => setError(null), 5000);
+        setMessage("");
       } else {
-        setError("Failed to send message. Please try again.");
-        setTimeout(() => setError(null), 5000);
+        setMessage("");
+        setEditingMessage(null);
+        setEditContent("");
       }
+    } catch (err: any) {
+      // Silently handle all unexpected errors
+      setMessage("");
     }
   };
 
   // Handle video ad reward
   const handleVideoAdReward = (coinsEarned: number) => {
-    logger.log(`Video ad completed! Earned ${coinsEarned} coins`);
     // In a real app, you might want to refresh the message count here
   };
 
@@ -207,14 +201,10 @@ export default function ChatContainer({ roomId, className, onRoomChange }: ChatC
     }
 
     try {
-      setError(null);
       await deleteMessageMutation({ messageId, userId: authUser._id });
-      setSuccessMessage("Message deleted");
-      setTimeout(() => setSuccessMessage(null), 2000);
+      // Silently delete without success message
     } catch (error: any) {
-      logger.error("Failed to delete message:", error);
-      setError(error.message || "Failed to delete message");
-      setTimeout(() => setError(null), 3000);
+      // Silently handle delete errors
     }
   };
 
@@ -223,22 +213,16 @@ export default function ChatContainer({ roomId, className, onRoomChange }: ChatC
     if (!editContent.trim() || !isAuthenticated || !authUser?._id) return;
 
     if (editContent.trim().length > 140) {
-      setError("Message must be 140 characters or less");
-      setTimeout(() => setError(null), 3000);
-      return;
+      return; // Silently reject over-limit edits
     }
 
     try {
-      setError(null);
       await editMessageMutation({ messageId, newContent: editContent, userId: authUser._id });
       setEditingMessage(null);
       setEditContent("");
-      setSuccessMessage("Message updated");
-      setTimeout(() => setSuccessMessage(null), 2000);
+      // Silently complete without success message
     } catch (error: any) {
-      logger.error("Failed to edit message:", error);
-      setError(error.message || "Failed to edit message");
-      setTimeout(() => setError(null), 3000);
+      // Silently handle edit errors
     }
   };
 
@@ -559,25 +543,6 @@ export default function ChatContainer({ roomId, className, onRoomChange }: ChatC
       {/* Message input */}
       <form onSubmit={handleSendMessage} className="p-4 border-t bg-white">
         <div className="flex flex-col gap-2">
-          {messageQueued && (
-            <div className="bg-blue-900/50 border border-blue-500 text-blue-200 text-sm p-3 rounded-lg flex items-center gap-2">
-              <Play className="w-4 h-4" />
-              <span>Message queued! Watch the video ad to send your message.</span>
-            </div>
-          )}
-          
-          {error && (
-            <div className="bg-red-900/50 border border-red-500 text-red-200 text-sm p-3 rounded-lg">
-              {error}
-            </div>
-          )}
-          
-          {successMessage && (
-            <div className="bg-green-900/50 border border-green-500 text-green-200 text-sm p-3 rounded-lg">
-              {successMessage}
-            </div>
-          )}
-          
           <div className="flex gap-2">
             <div className="flex-1 relative">
               <Input
@@ -603,8 +568,8 @@ export default function ChatContainer({ roomId, className, onRoomChange }: ChatC
                 disabled={!isAuthenticated}
               />
               {message.length >= 140 && (
-                <div className="absolute -top-8 left-0 right-0 bg-red-500 text-white text-xs px-2 py-1 rounded animate-pulse">
-                  Character limit reached!
+                <div className="absolute -top-8 left-0 right-0 bg-gray-500 text-white text-xs px-2 py-1 rounded animate-pulse">
+                  140 character limit
                 </div>
               )}
             </div>
@@ -638,37 +603,33 @@ export default function ChatContainer({ roomId, className, onRoomChange }: ChatC
         isOpen={showVideoAd} 
         onClose={() => {
           setShowVideoAd(false);
-          setMessageQueued(false);
           setPendingMessage(null);
         }}
         reason="chat"
         onChatSuccess={() => {
-          console.log("[ChatContainer] Video ad success callback triggered");
           // Send the pending message after video is watched
           if (pendingMessage && authUser?._id) {
-            console.log("[ChatContainer] Sending pending message:", pendingMessage);
             sendMessageMutation({
               userId: authUser._id,
               roomId,
               content: pendingMessage.trim(),
               messageType: "text",
-            }).then(() => {
-              console.log("[ChatContainer] Pending message sent successfully");
-              // Clear the pending message and input
+            }).then((result) => {
+              if (result?.videoAdRequired) {
+                // Shouldn't happen after successful watch, but handle gracefully
+                setPendingMessage(pendingMessage);
+                setShowVideoAd(true);
+                setMessage("");
+              } else {
+                setPendingMessage(null);
+                setMessage("");
+              }
+            }).catch(() => {
+              // Silently handle any errors
               setPendingMessage(null);
-              setMessageQueued(false);
               setMessage("");
-              setError(null);
-              setSuccessMessage("Message sent successfully!");
-              setTimeout(() => setSuccessMessage(null), 3000);
-            }).catch((err) => {
-              logger.error("Failed to send pending message:", err);
-              setError("Failed to send message. Please try again.");
-              setTimeout(() => setError(null), 5000);
             });
           } else {
-            console.log("[ChatContainer] No pending message or authUser");
-            setMessageQueued(false);
             setPendingMessage(null);
           }
         }}

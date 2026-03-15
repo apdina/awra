@@ -25,7 +25,7 @@ export function AdUnit({
   className = '',
   desktopOnly = false 
 }: AdUnitProps) {
-  const adRef = useRef<HTMLDivElement>(null);
+  const adRef = useRef<HTMLModElement>(null);
   const [isDesktop, setIsDesktop] = useState(true);
   const [adLoaded, setAdLoaded] = useState(false);
 

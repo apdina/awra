@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ConvexHttpClient } from "convex/browser";
 import { Ticket } from '@/types/game';
 import { api } from '@/convex/_generated/api';
+import { logger } from "@/lib/logger";
 
 /**
  * ⏰ TIME CRITICAL CODE

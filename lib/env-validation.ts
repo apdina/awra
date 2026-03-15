@@ -29,7 +29,7 @@ export const validateEnvironmentVariables = () => {
     }
   }
 
-  // Convex configuration (Supabase disabled - migrated to Convex)
+  // Convex configuration
   const requiredConvexVars = [
     'NEXT_PUBLIC_CONVEX_URL',
   ];

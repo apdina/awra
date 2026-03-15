@@ -15,7 +15,7 @@ import { getDefaultAvatar } from './avatar';
 import { recordFailedAttemptInternal, isAccountLockedInternal, clearFailedAttemptsInternal } from './loginAttempts';
 
 // Native Convex Authentication System
-// This replaces Supabase authentication with Convex-native auth
+// Uses Convex-native auth and password hashing
 
 // Secure password hashing using bcrypt (synchronous for Convex compatibility)
 function hashPassword(password: string): string {

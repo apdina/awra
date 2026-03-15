@@ -8,7 +8,6 @@ export const userProfiles = defineTable({
   passwordHash: v.optional(v.string()), // Hashed password (if using email/password)
   oauthProvider: v.optional(v.string()), // e.g., "google", "github"
   oauthId: v.optional(v.string()), // OAuth provider user ID
-  supabaseId: v.optional(v.string()), // Legacy Supabase user ID (for migration)
   tokenVersion: v.optional(v.number()), // Increment to invalidate all tokens
   
   // Display information

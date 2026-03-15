@@ -11,7 +11,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  logger.log('🔄 Rate limit reset requested');
+  console.log('🔄 Rate limit reset requested');
   
   // Note: This won't actually clear the in-memory rate limits in the login route
   // You need to restart the dev server to clear them

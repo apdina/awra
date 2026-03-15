@@ -31,23 +31,22 @@ export default function ChatRoomSelector({
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const activeRooms = useQuery(api.chatRooms.getActiveRooms);
+  const roomData = useQuery(api.chatRooms.getRoomByStringId, { roomId: 'global' });
 
   useEffect(() => {
-    if (activeRooms !== undefined) {
-      // Map Convex data (_id) to ChatRoom interface (id)
-      const mappedRooms = activeRooms.map(room => ({
-        id: room._id,
-        name: room.name,
-        description: room.description,
-        type: room.type,
-        userCount: room.userCount,
-        isActive: room.isActive
-      }));
-      setRooms(mappedRooms);
+    if (roomData) {
+      setRooms([
+        {
+          id: roomData._id,
+          name: roomData.name,
+          description: roomData.description,
+          type: roomData.type,
+          isActive: roomData.isActive,
+        },
+      ]);
       setIsLoading(false);
     }
-  }, [activeRooms]);
+  }, [roomData]);
 
   const getRoomIcon = (type: ChatRoom["type"]) => {
     switch (type) {

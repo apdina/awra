@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ConvexHttpClient } from "convex/browser";
+import { logger } from "@/lib/logger";
 
 // POST /api/tickets/claim/[ticketId] - Claim ticket winnings using Convex
 export async function POST(

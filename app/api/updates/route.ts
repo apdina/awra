@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { logger } from "@/lib/logger";
 
 // Server-Sent Events endpoint for real-time updates
 export async function GET(request: NextRequest) {

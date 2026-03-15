@@ -37,9 +37,31 @@ export default function VideoAdModal({
   const [watchSessionId, setWatchSessionId] = useState<string | null>(null);
   
   const completeVideoWatch = useMutation(api.videoAds.completeVideoWatch);
+  const completeChatVideoWatch = useMutation(api.videoAds.completeChatVideoWatch);
   const startVideoWatch = useMutation(api.videoAds.startVideoWatch);
   const canWatchVideo = useQuery(api.videoAds.canWatchVideo);
   const videoStats = useQuery(api.videoAds.getVideoStats);
+
+  const handleStartWatching = async () => {
+    if (!authUser) return;
+
+    try {
+      setError(null);
+      const result = await startVideoWatch({
+        userId: authUser._id,
+        adProvider: "placeholder", // Will be replaced with real platform when available
+        adUnitId: isChatReason(reason) ? "chat_message_unlock" : "special_avatar_unlock",
+        videoId: `video_${Date.now()}_${authUser._id}`, // Unique video identifier
+      });
+      
+      setWatchSessionId(result.watchId);
+      setIsWatching(true);
+      logger.log("Video watch session started:", result);
+    } catch (err) {
+      setError("Failed to start video. Please try again.");
+      logger.error("Failed to start video watch:", err);
+    }
+  };
 
   useEffect(() => {
     if (!isOpen) {
@@ -48,6 +70,9 @@ export default function VideoAdModal({
       setError(null);
       setIsWatching(false);
       setWatchSessionId(null);
+    } else if (isOpen && !isWatching && !watchSessionId) {
+      // Auto-start video when modal opens
+      handleStartWatching();
     }
   }, [isOpen]);
 
@@ -71,27 +96,6 @@ export default function VideoAdModal({
     return () => clearInterval(interval);
   }, [isWatching, isCompleted]);
 
-  const handleStartWatching = async () => {
-    if (!authUser) return;
-
-    try {
-      setError(null);
-      const result = await startVideoWatch({
-        userId: authUser._id,
-        adProvider: "placeholder", // Will be replaced with real platform when available
-        adUnitId: isChatReason(reason) ? "chat_message_unlock" : "special_avatar_unlock",
-        videoId: `video_${Date.now()}_${authUser._id}`, // Unique video identifier
-      });
-      
-      setWatchSessionId(result.watchId);
-      setIsWatching(true);
-      logger.log("Video watch session started:", result);
-    } catch (err) {
-      setError("Failed to start video. Please try again.");
-      logger.error("Failed to start video watch:", err);
-    }
-  };
-
   const handleCompleteVideo = async () => {
     console.log("[VideoAdModal] handleCompleteVideo CLICKED!");
     if (!watchSessionId || !authUser) {
@@ -107,19 +111,18 @@ export default function VideoAdModal({
       
       if (isChatReason(reason)) {
         console.log("[VideoAdModal] Processing as chat reward");
-        // For chat, just complete the video watch without avatar selection
-        result = await completeVideoWatch({
+        // For chat, use the dedicated chat video completion function
+        result = await completeChatVideoWatch({
           userId: authUser._id,
           watchId: watchSessionId as any,
           watchDuration: 3, // Demo: 3 seconds
           completionRate: 100, // 100% completion for placeholder
-          selectedAvatar: "chat_reward", // Special value for chat rewards
         });
 
-        console.log("[VideoAdModal] completeVideoWatch result:", result);
+        console.log("[VideoAdModal] completeChatVideoWatch result:", result);
 
         if (result.success) {
-          console.log("[VideoAdModal] Video completion successful, calling onChatSuccess");
+          console.log("[VideoAdModal] Chat video completion successful, calling onChatSuccess");
           // Small delay to ensure database update propagates
           await new Promise(resolve => setTimeout(resolve, 1000));
           onChatSuccess?.(); // Call chat success callback
@@ -128,7 +131,7 @@ export default function VideoAdModal({
             onClose();
           }, 1500); // Show success message for 1.5 seconds
         } else {
-          throw new Error("Video completion failed");
+          throw new Error("Chat video completion failed");
         }
       } else {
         // For avatar unlocking
