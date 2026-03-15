@@ -10,7 +10,7 @@
     "winning_number": "Winnend Nummer",
     "play_now": "SPEEL NU",
     "next_draw": "Volgende Trekking",
-    "draw_time": "Dagelijkse trekkingen om 22:00",
+"draw_time": "Dagelijkse trekkingen om {{time}}",
     "jackpot_probability": "Vandaag's Jackpot Kans",
     "draw_in": "Trekking in:",
     "claim_free_ticket": "CLAIM JE GRATIS TICKET NU",
@@ -223,7 +223,7 @@
     "rules_range": "Nummers lopen van 001 tot 200",
     "rules_exact": "Exacte match (3 cijfers): Win 100x weddenschap",
     "rules_partial": "Gedeeltelijke match (laatste 2 cijfers): Win 20x weddenschap",
-    "rules_draws": "Dagelijkse trekkingen maandag t/m zaterdag om 22:00",
+"rules_draws": "Dagelijkse trekkingen maandag t/m zaterdag om {{time}}",
     "rules_results": "Resultaten onmiddellijk beschikbaar",
     "rules_sunday": "Zondag: Geen trekkingen (rustdag)",
     "select_at_least_one": "Selecteer alsjeblieft ten minste één nummer",
@@ -438,7 +438,7 @@
     "page_of": "Pagina {{currentPage}} van {{totalPages}}",
     "showing_of": "Toont {{current}} van {{total}} totale items",
     "draw_schedule": "📅 Trekking Schema",
-    "daily_draws": "Dagelijkse trekkingen om 22:00",
+"daily_draws": "Dagelijkse trekkingen om {{time}}",
     "numbers_range": "Nummers lopen van 001 tot 200",
     "results_available": "Resultaten onmiddellijk beschikbaar",
     "sunday_no_draws": "Zondag: Geen trekkingen (rustdag)",
@@ -651,6 +651,7 @@
     "guideline_1": "Wees respectvol en vriendelijk naar alle gebruikers",
     "guideline_2": "Geen spam, intimidatie of ongepaste inhoud",
     "guideline_3": "Berichten zijn beperkt tot 140 tekens",
-    "guideline_4": "Moderators kunnen ongepaste berichten verwijderen om de gemeenschap veilig te houden"
+"guideline_4":"Moderators kunnen ongepaste berichten verwijderen om de gemeenschap veilig te houden",
+    "rooms_label":"KAMERS :"
+    }
   }
-}

@@ -11,6 +11,7 @@ import { type Locale } from "@/lib/numberNames";
 import { useTranslationsFromPath } from '@/i18n/translation-context';
 import PageWithSidebarAds from "@/components/layout/PageWithSidebarAds";
 import RefreshVideoAd from "@/components/RefreshVideoAd";
+import DrawTimeDisplay from "@/components/DrawTimeDisplay";
 
 interface WinningNumbersContentProps {
   locale: string;
@@ -307,7 +308,7 @@ export default function WinningNumbersContent({
               <h4 className="text-lg font-bold text-green-400">{t('winning_numbers.draw_schedule')}</h4>
             </div>
             <ul className="text-gray-300 space-y-2">
-              <li>• {t('winning_numbers.daily_draws')}</li>
+              <li>• <DrawTimeDisplay /></li>
               <li>• {t('winning_numbers.numbers_range')}</li>
               <li>• {t('winning_numbers.results_available')}</li>
               <li>• <span className="text-blue-400">{t('winning_numbers.sunday_no_draws')}</span></li>

@@ -10,7 +10,7 @@
     "winning_number": "Numero Vincente",
     "play_now": "GIOCA ADESSO",
     "next_draw": "Prossima Estrazione",
-    "draw_time": "Estrazioni giornaliere alle 22:00",
+"draw_time": "Estrazioni giornaliere alle {{time}}",
     "jackpot_probability": "Probabilità del Jackpot di Oggi",
     "draw_in": "Estrazione in:",
     "claim_free_ticket": "RIVENDICA IL TUO BIGLIETTO GRATIS ADESSO",
@@ -207,7 +207,7 @@
     "rules_range": "I numeri vanno da 001 a 200",
     "rules_exact": "Corrispondenza esatta (3 cifre): Vinci 100x scommessa",
     "rules_partial": "Corrispondenza parziale (ultime 2 cifre): Vinci 20x scommessa",
-    "rules_draws": "Estrazioni giornaliere lunedì-sabato alle 22:00",
+"rules_draws": "Estrazioni giornaliere lunedì-sabato alle {{time}}",
     "rules_results": "Risultati disponibili immediatamente",
     "rules_sunday": "Domenica: Nessuna estrazione (giorno di riposo)",
     "draw_date_next_sunday": "Data Estrazione",
@@ -423,7 +423,7 @@
     "page_of": "Pagina {{currentPage}} di {{totalPages}}",
     "showing_of": "Mostrando {{current}} di {{total}} voci totali",
     "draw_schedule": "📅 Calendario Estrazioni",
-    "daily_draws": "Estrazioni giornaliere alle 22:00",
+"daily_draws": "Estrazioni giornaliere alle {{time}}",
     "numbers_range": "I numeri vanno da 001 a 200",
     "results_available": "Risultati disponibili immediatamente",
     "sunday_no_draws": "Domenica: Nessuna estrazione (giorno di riposo)",
@@ -651,6 +651,7 @@
     "guideline_1": "Sii rispettoso e gentile con tutti gli utenti",
     "guideline_2": "Niente spam, molestie o contenuti inappropriati",
     "guideline_3": "I messaggi sono limitati a 140 caratteri",
-    "guideline_4": "I moderatori possono eliminare i messaggi inappropriati per mantenere la comunità sicura"
+"guideline_4":"I moderatori possono eliminare i messaggi inappropriati per mantenere la comunità sicura",
+    "rooms_label":"STANZE :"
+    }
   }
-}

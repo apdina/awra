@@ -55,7 +55,7 @@ async function generateToken(userId: string, tokenVersion?: number): Promise<str
     userId, 
     type: 'access',
     iat: Date.now(),
-    exp: Date.now() + (15 * 60 * 1000), // 15 minutes (short-lived)
+    exp: Date.now() + (60 * 60 * 1000), // 60 minutes (secure balance)
     jti: crypto.randomUUID(), // Unique token ID for revocation support
     tokenVersion: tokenVersion || 0 // Include tokenVersion for invalidation
   };

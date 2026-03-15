@@ -152,6 +152,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setUser(convexUser);
         logger.log('✅ Login successful, user state updated:', convexUser.displayName);
         logger.log('✅ Login successful, session stored in HTTP-only cookie');
+        
+        // Refresh user data immediately to ensure latest avatar/profile
+        await refreshUser();
+        
         return { success: true };
       } else {
         const errorMessage = result.error || 'Invalid email or password';
@@ -189,6 +193,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const loginResult = await login(email, password);
         if (loginResult.success) {
           logger.log('✅ Registration successful, auto-logged in');
+          // Refresh after auto-login
+          await refreshUser();
           return { success: true };
         }
         return { success: true, error: 'Registration successful. Please log in manually.' };

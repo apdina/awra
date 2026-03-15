@@ -10,7 +10,7 @@
     "winning_number": "Winning Number",
     "play_now": "PLAY NOW",
     "next_draw": "Next Draw",
-    "draw_time": "Daily draws at 22:00",
+"draw_time": "Daily draws at {{time}}",
     "at": "at",
     "jackpot_probability": "Today's Jackpot Probability",
     "draw_in": "Draw in:",
@@ -251,7 +251,7 @@
     "rules_range": "Numbers range from 001 to 200",
     "rules_exact": "Exact match (3 digits): Win 100x bet",
     "rules_partial": "Partial match (last 2 digits): Win 20x bet",
-    "rules_draws": "Daily draws Monday-Saturday at 22:00",
+"rules_draws": "Daily draws Monday-Saturday at {{time}}",
     "rules_results": "Results available immediately",
     "rules_sunday": "Sunday: No draws (rest day)",
     "select_at_least_one": "Please select at least one number",
@@ -464,7 +464,7 @@
     "page_of": "Page {{currentPage}} of {{totalPages}}",
     "showing_of": "Showing {{current}} of {{total}} total entries",
     "draw_schedule": "📅 Draw Schedule",
-    "daily_draws": "Daily draws at 22:00",
+"daily_draws": "Daily draws at {{time}}",
     "numbers_range": "Numbers range from 001 to 200",
     "results_available": "Results available immediately",
     "sunday_no_draws": "Sunday: No draws (rest day)",
@@ -697,6 +697,7 @@
     "guideline_1": "Be respectful and kind to all users",
     "guideline_2": "No spam, harassment, or inappropriate content",
     "guideline_3": "Messages are limited to 140 characters",
-    "guideline_4": "Moderators can delete inappropriate messages to keep the community safe"
+    "guideline_4": "Moderators can delete inappropriate messages to keep the community safe",
+    "rooms_label": "ROOMS :"
   }
 }

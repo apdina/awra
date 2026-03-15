@@ -10,7 +10,7 @@
     "winning_number": "Número Ganador",
     "play_now": "JUGAR AHORA",
     "next_draw": "Próximo Sorteo",
-    "draw_time": "Sorteos diarios a las 22:00",
+"draw_time": "Sorteos diarios a las {{time}}",
     "at": "a las",
     "jackpot_probability": "Probabilidad del Bote de Hoy",
     "draw_in": "Sorteo en:",
@@ -280,7 +280,7 @@
     "rules_range": "Los números van del 001 al 200",
     "rules_exact": "Coincidencia exacta (3 dígitos): Gana 100x apuesta",
     "rules_partial": "Coincidencia parcial (últimos 2 dígitos): Gana 20x apuesta",
-    "rules_draws": "Sorteos diarios lunes a sábado a las 22:00",
+"rules_draws": "Sorteos diarios lunes a sábado a las {{time}}",
     "rules_results": "Resultados disponibles inmediatamente",
     "rules_sunday": "Domingo: Sin sorteos (día de descanso)",
     "select_at_least_one": "Por favor selecciona al menos un número",
@@ -493,7 +493,7 @@
     "page_of": "Página {{currentPage}} de {{totalPages}}",
     "showing_of": "Mostrando {{current}} de {{total}} entradas totales",
     "draw_schedule": "📅 Calendario de Sorteos",
-    "daily_draws": "Sorteos diarios a las 22:00",
+"daily_draws": "Sorteos diarios a las {{time}}",
     "numbers_range": "Los números van del 001 al 200",
     "results_available": "Resultados disponibles inmediatamente",
     "sunday_no_draws": "Domingo: No hay sorteos (día de descanso)",
@@ -725,6 +725,7 @@
     "guideline_1": "Sé respetuoso y amable con todos los usuarios",
     "guideline_2": "No spam, acoso o contenido inapropiado",
     "guideline_3": "Los mensajes están limitados a 140 caracteres",
-    "guideline_4": "Los moderadores pueden eliminar mensajes inapropiados para mantener la comunidad segura"
+"guideline_4":"Los moderadores pueden eliminar mensajes inapropiados para mantener la comunidad segura",
+    "rooms_label":"SALAS :"
+    }
   }
-}
