@@ -24,6 +24,7 @@ import type * as coins from "../coins.js";
 import type * as crons from "../crons.js";
 import type * as debugTime from "../debugTime.js";
 import type * as draws from "../draws.js";
+import type * as holidays from "../holidays.js";
 import type * as loginAttempts from "../loginAttempts.js";
 import type * as moderators from "../moderators.js";
 import type * as native_auth from "../native_auth.js";
@@ -62,6 +63,7 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   debugTime: typeof debugTime;
   draws: typeof draws;
+  holidays: typeof holidays;
   loginAttempts: typeof loginAttempts;
   moderators: typeof moderators;
   native_auth: typeof native_auth;

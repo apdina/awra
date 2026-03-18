@@ -7,8 +7,11 @@ import { AdminLogin } from '@/app/components/AdminLogin';
 import { useAuth } from '@/components/ConvexAuthProvider';
 import SimpleUserManagement from '@/components/admin/SimpleUserManagement';
 import { triggerCountdownRefresh } from '@/components/SimpleCountdown';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '@/convex/_generated/api';
+import { ConvexClientProvider } from '@/components/ConvexClientProvider';
 
-type TabType = 'set-result' | 'set-time' | 'auto-schedule' | 'system-message' | 'user-management';
+type TabType = 'set-result' | 'set-time' | 'holidays' | 'auto-schedule' | 'system-message' | 'user-management';
 
 function UnifiedAdminDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('set-result');
@@ -25,7 +28,18 @@ function UnifiedAdminDashboard() {
   const [systemMessageLoading, setSystemMessageLoading] = useState(false);
   const [systemMessageRoom, setSystemMessageRoom] = useState("global");
   const [systemMessageType, setSystemMessageType] = useState<"manners" | "behavior" | "encouragement" | "custom">("manners");
+  
+  // Holiday state
+  const [newHolidayDate, setNewHolidayDate] = useState('');
+  const [holidayLoading, setHolidayLoading] = useState(false);
+  
+  // Convex hooks
+  const holidays = useQuery(api.holidays.getHolidays);
+  const addHoliday = useMutation(api.holidays.addHoliday);
+  const removeHoliday = useMutation(api.holidays.removeHoliday);
+  
   const router = useRouter();
+  const ADMIN_SECRET = process.env.NEXT_PUBLIC_ADMIN_SECRET || '';
 
   const handleLogout = async () => {
     try {
@@ -62,8 +76,6 @@ function UnifiedAdminDashboard() {
 
     fetchCurrentDrawTime();
   }, []);
-
-  const ADMIN_SECRET = process.env.NEXT_PUBLIC_ADMIN_SECRET || '';
 
   // Set Result Handler
   const handleSetResult = async () => {
@@ -328,11 +340,46 @@ function UnifiedAdminDashboard() {
     }
   };
 
+  // Holiday Handlers
+  const handleAddHoliday = async () => {
+    if (!newHolidayDate.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+      setMessage('❌ Invalid format. Use DD/MM/YYYY');
+      return;
+    }
+
+    setHolidayLoading(true);
+    try {
+      await addHoliday({ dateStr: newHolidayDate, adminSecret: ADMIN_SECRET });
+      setMessage(`✅ Holiday added: ${newHolidayDate}`);
+      setNewHolidayDate('');
+      setTimeout(() => setMessage(''), 3000);
+    } catch (error: any) {
+      setMessage(`❌ ${error.message}`);
+    }
+    setHolidayLoading(false);
+  };
+
+  const handleRemoveHoliday = async (dateStr: string) => {
+    if (!confirm(`Remove ${dateStr}?`)) return;
+    
+    setHolidayLoading(true);
+    try {
+      await removeHoliday({ dateStr, adminSecret: ADMIN_SECRET });
+      setMessage(`✅ Removed: ${dateStr}`);
+      setTimeout(() => setMessage(''), 3000);
+    } catch (error: any) {
+      setMessage(`❌ ${error.message}`);
+    }
+    setHolidayLoading(false);
+  };
+
   const tabs = [
     { id: 'set-result' as TabType, label: '🎯 Set Result', color: 'text-green-400' },
     { id: 'set-time' as TabType, label: '⏰ Set Time', color: 'text-blue-400' },
+    { id: 'holidays' as TabType, label: '📅 Holidays', color: 'text-orange-400' },
     { id: 'auto-schedule' as TabType, label: '🚀 Auto Schedule', color: 'text-purple-400' },
-    { id: 'system-message' as TabType, label: '📢 System Message', color: 'text-yellow-400' }
+    { id: 'system-message' as TabType, label: '📢 System Message', color: 'text-yellow-400' },
+    { id: 'user-management' as TabType, label: '👥 Users', color: 'text-red-400' }
   ];
 
   // System Message Handler
@@ -631,6 +678,70 @@ function UnifiedAdminDashboard() {
             </div>
           )}
 
+          {/* Holidays Tab */}
+          {activeTab === 'holidays' && (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold text-orange-400">📅 Holiday Exceptions</h2>
+              
+              {/* Add Holiday */}
+              <div className="bg-gray-700 p-4 sm:p-6 rounded-lg border border-gray-600">
+                <h3 className="text-lg font-semibold mb-4">Add Holiday Exception</h3>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <input
+                    type="text"
+                    placeholder="DD/MM/YYYY"
+                    value={newHolidayDate}
+                    onChange={(e) => setNewHolidayDate(e.target.value)}
+                    className="flex-1 p-3 rounded bg-gray-900 border border-gray-600 text-white font-mono text-center sm:text-left"
+                  />
+                  <button
+                    onClick={handleAddHoliday}
+                    disabled={holidayLoading}
+                    className={`w-full sm:w-auto px-6 py-3 rounded font-bold whitespace-nowrap ${
+                      holidayLoading ? 'bg-gray-600 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
+                    }`}
+                  >
+                    {holidayLoading ? 'Adding...' : '➕ Add'}
+                  </button>
+                </div>
+                <p className="text-xs text-gray-400 mt-2">Example: 25/12/2025</p>
+              </div>
+
+              {/* Holidays List */}
+              <div className="bg-gray-700 p-4 sm:p-6 rounded-lg border border-gray-600">
+                <h3 className="text-lg font-semibold mb-4">
+                  Current Exceptions ({holidays?.length || 0})
+                </h3>
+                
+                {!holidays ? (
+                  <p className="text-gray-400">Loading...</p>
+                ) : holidays.length === 0 ? (
+                  <p className="text-gray-400">No holidays configured</p>
+                ) : (
+                  <div className="space-y-2">
+                    {holidays.map((date: string) => (
+                      <div 
+                        key={date} 
+                        className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 p-4 bg-gray-900 rounded border border-gray-700"
+                      >
+                        <span className="font-mono text-lg text-center sm:text-left">{date}</span>
+                        <button
+                          onClick={() => handleRemoveHoliday(date)}
+                          disabled={holidayLoading}
+                          className={`w-full sm:w-auto px-4 py-2 rounded font-semibold ${
+                            holidayLoading ? 'bg-gray-600 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'
+                          }`}
+                        >
+                          🗑️ Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* System Message Tab */}
           {activeTab === 'system-message' && (
             <div className="space-y-6">
@@ -727,6 +838,12 @@ function UnifiedAdminDashboard() {
               ⏰ Set Draw Time
             </button>
             <button 
+              onClick={() => setActiveTab('holidays')}
+              className="p-3 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded transition-colors"
+            >
+              📅 Holidays
+            </button>
+            <button 
               onClick={() => setActiveTab('auto-schedule')}
               className="p-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded transition-colors"
             >
@@ -753,8 +870,10 @@ function UnifiedAdminDashboard() {
 
 export default function AdminDashboard() {
   return (
-    <AdminLogin>
-      <UnifiedAdminDashboard />
-    </AdminLogin>
+    <ConvexClientProvider>
+      <AdminLogin>
+        <UnifiedAdminDashboard />
+      </AdminLogin>
+    </ConvexClientProvider>
   );
 }
