@@ -1,7 +1,7 @@
 "use client";
 
-import TicketsContentUnified from "./TicketsContentUnified";
+import TicketsContent from "./TicketsContent";
 
 export default function TicketsPage() {
-  return <TicketsContentUnified />;
+  return <TicketsContent />;
 }

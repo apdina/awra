@@ -1,20 +1,22 @@
 /**
- * Unified Home Logic Hook
+ * Unified Home Logic Hook - ENHANCED
  * 
- * Shared business logic for both mobile and desktop home components
- * Handles:
- * - Countdown timer calculation
- * - Draw data management
- * - Chat stats
- * - Draw history
+ * Shared business logic for unified home component
+ * Handles ALL duplicated logic from mobile/desktop versions
  */
 
 import { useState, useEffect, useCallback } from 'react';
 import { Draw } from '@/types/game';
 import { useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
+import { useAuth } from '@/components/ConvexAuthProvider';
+import { useTranslationsFromPath } from '@/i18n/translation-context';
+import { useCurrentDrawShared } from '@/hooks/useCurrentDrawShared';
 
 export interface UseHomeLogicReturn {
+  t: any;
+  user: any;
+  isAuthenticated: boolean;
   currentDraw: Draw | null;
   timeUntilDraw: string;
   countdown: { hours: number; minutes: number; seconds: number };
@@ -25,6 +27,9 @@ export interface UseHomeLogicReturn {
 }
 
 export function useHomeLogic(initialDraw: Draw): UseHomeLogicReturn {
+  const { user, isAuthenticated } = useAuth();
+  const { t } = useTranslationsFromPath();
+  const { draw: fetchedDraw } = useCurrentDrawShared(300000); // Refresh every 5 minutes
   const [currentDraw, setCurrentDraw] = useState<Draw | null>(initialDraw);
   const [timeUntilDraw, setTimeUntilDraw] = useState<string>('');
   const [countdown, setCountdown] = useState<{ hours: number; minutes: number; seconds: number }>({
@@ -33,6 +38,13 @@ export function useHomeLogic(initialDraw: Draw): UseHomeLogicReturn {
     seconds: 0,
   });
   const [isMounted, setIsMounted] = useState(false);
+
+  // Update currentDraw with fetched data
+  useEffect(() => {
+    if (fetchedDraw) {
+      setCurrentDraw(fetchedDraw);
+    }
+  }, [fetchedDraw]);
 
   // Get real-time data from Convex
   const chatStats = useQuery(api.chat.getChatStats, {}) ?? {
@@ -43,51 +55,36 @@ export function useHomeLogic(initialDraw: Draw): UseHomeLogicReturn {
   const recentMessages = useQuery(api.chat.getMessages, { roomId: 'global', limit: 6 });
   const drawHistory = useQuery(api.draws.getDrawHistory, { limit: 5 });
 
-  // Calculate next draw time from API data
+  // Calculate next draw time (UTC consistent)
   const getNextDrawTime = useCallback((drawDate?: string, drawTime?: string) => {
     if (!drawDate || !drawTime) {
-      // Fallback: calculate next valid date (UTC)
       const now = new Date();
       let nextDraw = new Date();
       nextDraw.setUTCHours(21, 40, 0, 0);
-
       if (nextDraw <= now) {
         nextDraw.setUTCDate(nextDraw.getUTCDate() + 1);
       }
-
-      // Skip Sundays (UTC)
       if (nextDraw.getUTCDay() === 0) {
         nextDraw.setUTCDate(nextDraw.getUTCDate() + 1);
       }
-
       return nextDraw;
     }
-
-    // Parse the draw date and time from API (DD/MM/YYYY and HH:MM in UTC)
     const [day, month, year] = drawDate.split('/').map(Number);
     const [hours, minutes] = drawTime.split(':').map(Number);
-
-    // Create date object from API data (UTC)
-    const drawDateTime = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0, 0));
-
-    return drawDateTime;
+    return new Date(Date.UTC(year, month - 1, day, hours, minutes, 0, 0));
   }, []);
 
-  // Countdown timer effect
+  // Countdown effect
   useEffect(() => {
     setIsMounted(true);
-
     const calculateCountdown = () => {
       const drawDate = getNextDrawTime(currentDraw?.draw_date, currentDraw?.draw_time);
-
       const now = new Date();
       const difference = drawDate.getTime() - now.getTime();
-
       if (difference > 0) {
         const hrs = Math.floor(difference / (1000 * 60 * 60));
         const mins = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
         const secs = Math.floor((difference % (1000 * 60)) / 1000);
-
         setCountdown({ hours: hrs, minutes: mins, seconds: secs });
         setTimeUntilDraw(`${hrs}h ${mins}m ${secs}s`);
       } else {
@@ -95,17 +92,15 @@ export function useHomeLogic(initialDraw: Draw): UseHomeLogicReturn {
         setCountdown({ hours: 0, minutes: 0, seconds: 0 });
       }
     };
-
-    // Calculate immediately
     calculateCountdown();
-
-    // Update every second
     const interval = setInterval(calculateCountdown, 1000);
-
     return () => clearInterval(interval);
   }, [currentDraw, getNextDrawTime]);
 
   return {
+    t,
+    user,
+    isAuthenticated,
     currentDraw,
     timeUntilDraw,
     countdown,
@@ -115,3 +110,4 @@ export function useHomeLogic(initialDraw: Draw): UseHomeLogicReturn {
     isMounted,
   };
 }
+

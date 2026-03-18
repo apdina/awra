@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import HomeContentUnified from "./HomeContentUnified";
+import HomeContent from "./HomeContent";
 
 // Add static generation for better performance
 export const revalidate = 60; // Revalidate every 60 seconds
@@ -29,6 +29,6 @@ async function HomeWrapper({ params }: { params: Promise<{ locale: string }> }) 
   };
   
   return (
-    <HomeContentUnified locale={resolvedParams.locale} initialDraw={fallbackDraw} />
+    <HomeContent locale={resolvedParams.locale} initialDraw={fallbackDraw} />
   );
 }

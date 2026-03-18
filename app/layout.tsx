@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { FooterDisclaimer } from "@/app/components/ui/FooterDisclaimer";
 import { LocaleHtml } from './components/LocaleHtml';
+import AdBlockWarning from '@/components/AdBlockWarning';
 
 // Environment validation is now handled per-route to avoid build blocking
 
@@ -32,7 +33,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
       >
         {children}
+        <AdBlockWarning />
       </body>
     </LocaleHtml>
   );
+
 }

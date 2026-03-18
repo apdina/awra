@@ -1,154 +1,106 @@
 /**
- * Unified Tickets Logic Hook
- * 
- * Shared business logic for both mobile and desktop tickets components
- * Handles:
- * - Loading tickets from API
- * - Transforming ticket data
- * - Calculating winnings
- * - Error handling
+ * Tickets Logic Hook - Ultra Stable
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Ticket } from '@/types/game';
 import { useAuth } from '@/components/ConvexAuthProvider';
+import { useTranslationsFromPath } from '@/i18n/translation-context';
 
 export interface UseTicketsLogicReturn {
+  t: any;
+  locale: string;
   tickets: Ticket[];
   loading: boolean;
   error: string;
-  isMounted: boolean;
-  
-  // Actions
-  loadTickets: () => Promise<void>;
-  calculateTotalWinnings: (ticket: Ticket) => number;
-  
-  // Summary stats
   summaryStats: {
     totalSpent: number;
     totalWon: number;
   };
+  calculateTotalWinnings: (ticket: Ticket) => number;
 }
 
 export function useTicketsLogic(): UseTicketsLogicReturn {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { t } = useTranslationsFromPath();
+  const { locale } = useTranslationsFromPath();
   
-  // State
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [isMounted, setIsMounted] = useState(false);
 
-  // Mark as mounted
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  // Load tickets from API
-  const loadTickets = useCallback(async () => {
-    if (!isAuthenticated || !user) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError('');
-      
-      const response = await fetch('/api/tickets/unified', {
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to load tickets');
-      }
-      
-      const data = await response.json();
-      const userTickets = data.tickets || [];
-      
-      // Transform unified tickets to match Ticket type
-      const transformedTickets: Ticket[] = userTickets.map((ticket: any) => {
-        const safeCreatedDate = ticket.created_at ? new Date(ticket.created_at) : new Date();
-        
-        return {
-          id: ticket.id || 'UNKNOWN',
-          user_id: ticket.user_id || 'UNKNOWN',
-          draw_id: ticket.draw_id || 'UNKNOWN-N/A',
-          total_amount_awra_coins: ticket.total_amount_awra_coins || 0,
-          status: ticket.status || 'ACTIVE',
-          created_at: safeCreatedDate.toISOString(),
-          draw_date: ticket.draw_date || 'N/A',
-          draw_time: ticket.draw_time || 'N/A',
-          ticket_bets: ticket.ticket_bets?.map((bet: any, index: number) => {
-            const isExactMatch = bet.number === (ticket as any).winningNumber;
-            const isPartialMatch = !isExactMatch && 
-              (ticket as any).winningNumber && 
-              (bet.number % 100) === ((ticket as any).winningNumber % 100);
-            const isBetWinner = (ticket as any).isWinning && (isExactMatch || isPartialMatch);
-            
-            let betPayout = 0;
-            if (isBetWinner) {
-              if (isExactMatch) {
-                betPayout = bet.amount_awra_coins * 100;
-              } else if (isPartialMatch) {
-                betPayout = bet.amount_awra_coins * 20;
-              }
-            }
-            
-            return {
-              id: bet.id || `${ticket.id || 'unknown'}-${index}`,
-              ticket_id: ticket.id || 'unknown',
-              number: bet.number,
-              amount_awra_coins: bet.amount_awra_coins,
-              is_winner: isBetWinner,
-              payout_awra_coins: betPayout,
-              created_at: safeCreatedDate.toISOString()
-            };
-          }) || []
-        };
-      });
-      
-      setTickets(transformedTickets);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load tickets');
-    } finally {
-      setLoading(false);
-    }
-  }, [isAuthenticated, user]);
-
-  // Load tickets on mount and when auth changes
-  useEffect(() => {
-    if (isMounted) {
-      loadTickets();
-    }
-  }, [isMounted, isAuthenticated, user, loadTickets]);
-
-  // Calculate total winnings for a ticket
   const calculateTotalWinnings = useCallback((ticket: Ticket) => {
-    return ticket.ticket_bets?.reduce((sum, bet) => sum + (bet.payout_awra_coins || 0), 0) || 0;
+    return ticket.ticket_bets?.reduce((sum, bet) => sum + Number(bet.payout_awra_coins || 0), 0) || 0;
   }, []);
 
-  // Memoize summary calculations
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchTickets = async () => {
+      if (!isAuthenticated || !user || authLoading) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError('');
+
+        const response = await fetch('/api/tickets/unified', {
+          method: 'GET',
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          console.warn(`Tickets API ${response.status}:`, await response.text());
+          if (!cancelled) setTickets([]);
+          return;
+        }
+
+        const data = await response.json();
+        console.log('Tickets loaded:', data.tickets?.length || 0);
+
+        if (!cancelled) {
+          const transformed: Ticket[] = (data.tickets || []).map((ticket: any) => ({
+            ...ticket,
+            total_amount_awra_coins: Number(ticket.total_amount_awra_coins || 0),
+            ticket_bets: ticket.ticket_bets?.map((bet: any) => ({
+              ...bet,
+              amount_awra_coins: Number(bet.amount_awra_coins || 0),
+              payout_awra_coins: Number(bet.payout_awra_coins || 0),
+            })) || [],
+          }));
+          setTickets(transformed);
+        }
+      } catch (err) {
+        console.error('Tickets fetch failed:', err);
+        if (!cancelled) setTickets([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    fetchTickets();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, user]); // Stable deps only
+
   const summaryStats = useMemo(() => {
-    const totalSpent = tickets.reduce((sum, ticket) => sum + (ticket.total_amount_awra_coins || 0), 0);
-    const totalWon = tickets.reduce((sum, ticket) => {
-      const ticketWinnings = ticket.ticket_bets?.reduce((betSum, bet) => betSum + (bet.payout_awra_coins || 0), 0) || 0;
-      return sum + ticketWinnings;
-    }, 0);
-    
+    const totalSpent = tickets.reduce((sum, ticket) => sum + Number(ticket.total_amount_awra_coins || 0), 0);
+    const totalWon = tickets.reduce((sum, ticket) => sum + calculateTotalWinnings(ticket), 0);
     return { totalSpent, totalWon };
-  }, [tickets]);
+  }, [tickets, calculateTotalWinnings]);
 
   return {
+    t,
+    locale,
     tickets,
-    loading,
+    loading: loading || authLoading,
     error,
-    isMounted,
-    loadTickets,
-    calculateTotalWinnings,
     summaryStats,
+    calculateTotalWinnings,
   };
 }
+

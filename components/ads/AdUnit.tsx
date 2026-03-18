@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from 'react';
+import { detectAdBlock } from '@/lib/utils/adblock';
 
 interface AdUnitProps {
   adSlot: string;
@@ -93,6 +94,7 @@ export function AdPlaceholder({
   desktopOnly?: boolean;
 }) {
   const [isDesktop, setIsDesktop] = useState(true);
+  const [adBlocked, setAdBlocked] = useState(false);
 
   useEffect(() => {
     const checkDesktop = () => {
@@ -105,8 +107,29 @@ export function AdPlaceholder({
     return () => window.removeEventListener('resize', checkDesktop);
   }, []);
 
+  useEffect(() => {
+    detectAdBlock().then(setAdBlocked);
+  }, []);
+
   if (desktopOnly && !isDesktop) {
     return null;
+  }
+
+  if (adBlocked) {
+    return (
+      <div 
+        className={`flex flex-col items-center justify-center bg-gradient-to-br from-yellow-500 to-orange-500 border-2 border-yellow-600 rounded-lg p-3 ${className}`}
+        style={{ width, height, minHeight: height }}
+      >
+        <svg className="w-5 h-5 mb-1" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+        </svg>
+        <p className="text-black text-xs font-semibold text-center max-w-[200px] leading-tight">
+          Ad blocked
+        </p>
+        <p className="text-black/80 text-[10px] mt-1">Consider disabling blocker</p>
+      </div>
+    );
   }
 
   return (
