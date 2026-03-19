@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Ticket } from '@/types/game';
 
 // Cache for 5 seconds instead of 30 to prevent stale data
-const CACHE_DURATION = 5 * 1000; // 5 seconds
+const CACHE_DURATION = 1000; // 1 second - minimal caching for legacy endpoint
 let cache: { [userId: string]: { tickets: Ticket[]; timestamp: number } } = {};
 
 // GET /api/tickets/[userId] - LEGACY ENDPOINT (Use /api/tickets/unified instead)

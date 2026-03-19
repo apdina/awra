@@ -114,6 +114,10 @@ export function PlayForm({
 
       if (!response.ok) {
         const data = await response.json();
+        // Handle authentication error specifically
+        if (response.status === 401) {
+          throw new Error(t('play.login_required') || 'Please log in to purchase tickets');
+        }
         throw new Error(data.error || 'Failed to submit bets');
       }
 
@@ -127,8 +131,10 @@ export function PlayForm({
       
       // Redirect to tickets page
       router.push(`/${locale}/tickets`);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error submitting bets:', err);
+      // Show error to user
+      alert(err.message || 'Failed to submit bets');
     }
   };
 

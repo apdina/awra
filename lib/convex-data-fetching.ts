@@ -152,11 +152,7 @@ export async function getWinningNumbersConvex(limit: number = 50): Promise<Draw[
           }
           
           const drawTime = new Date(draw.drawingTime);
-          const formattedTime = drawTime.toLocaleTimeString('en-GB', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false
-          });
+          const formattedTime = `${String(drawTime.getUTCHours()).padStart(2, '0')}:${String(drawTime.getUTCMinutes()).padStart(2, '0')}`;
           
           return {
             id: draw._id,

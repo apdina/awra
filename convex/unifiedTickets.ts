@@ -9,7 +9,7 @@
 
 import { v } from "convex/values";
 import { mutation, query, httpAction } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { internal, api } from "./_generated/api";
 import { requireAuth } from "./auth";
 import { verifyToken } from "./native_auth";
 import { Id } from "./_generated/dataModel";
@@ -126,62 +126,63 @@ async function calculateDrawForPurchase(
   ctx: any,
   purchaseTimestamp: number
 ): Promise<{ drawDate: string; drawTime: string }> {
-  const purchaseDate = new Date(purchaseTimestamp);
+  // Call the SAME query that countdown uses: getOrCreateCurrentDraw
+  // This is the single source of truth
   
-  // Get default draw time from system config (get most recent)
-  const defaultTimeConfigs = await ctx.db
-    .query("systemConfig")
-    .filter((q: any) => q.eq(q.field("key"), "default_draw_time"))
+  // Batch fetch configs at top (same as getOrCreateCurrentDraw)
+  const configs = await ctx.db.query("systemConfig").collect();
+  const defaultTimeConfig = configs.find((c: any) => c.key === "default_draw_time");
+  const defaultDrawTime = (defaultTimeConfig?.value as string) || "21:40";
+  
+  // Find the most recent active or upcoming draw (same as getOrCreateCurrentDraw)
+  const draws = await ctx.db
+    .query("dailyDraws")
     .order("desc")
-    .take(1);
+    .take(10);
   
-  const drawTime = (defaultTimeConfigs[0]?.value as string) || "22:00";
-  const [hours, minutes] = drawTime.split(':').map(Number);
+  // Find first draw that hasn't been completed (same as getOrCreateCurrentDraw)
+  const activeDraw = draws.find((d: any) => d.status !== "completed");
   
-  // Get Sunday exclusion setting
+  if (activeDraw) {
+    // Extract time from drawingTime using UTC (same as getOrCreateCurrentDraw)
+    const d = new Date(activeDraw.drawingTime);
+    const drawTime = `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+    
+    return {
+      drawDate: activeDraw.drawId,
+      drawTime: drawTime
+    };
+  }
+  
+  // No active draw - calculate fallback (same as getOrCreateCurrentDraw)
   const excludeSundaysConfig = await ctx.db
     .query("systemConfig")
     .filter((q: any) => q.eq(q.field("key"), "exclude_sundays"))
     .first();
   
-  const excludeSundays = excludeSundaysConfig?.value !== false; // Default true
+  const excludeSundays = excludeSundaysConfig?.value !== false;
   
-  // Calculate today's draw time (UTC)
-  const todayDraw = new Date(purchaseDate);
-  todayDraw.setUTCHours(hours, minutes, 0, 0);
+  let nextDrawDate = new Date();
+  nextDrawDate.setUTCHours(0, 0, 0, 0);
   
-  let targetDrawDate: Date;
+  const [hours, minutes] = defaultDrawTime.split(':').map(Number);
+  nextDrawDate.setUTCHours(hours, minutes, 0, 0);
   
-  if (purchaseDate.getTime() > todayDraw.getTime()) {
-    // After today's draw, so ticket is for next draw day
-    targetDrawDate = new Date(todayDraw);
-    targetDrawDate.setUTCDate(targetDrawDate.getUTCDate() + 1);
-    
-    // Skip Sundays (UTC)
-    while (excludeSundays && targetDrawDate.getUTCDay() === 0) {
-      targetDrawDate.setUTCDate(targetDrawDate.getUTCDate() + 1);
-    }
-  } else {
-    // Before or at today's draw time
-    // Check if today is Sunday (UTC)
-    if (excludeSundays && purchaseDate.getUTCDay() === 0) {
-      // Today is Sunday, move to Monday
-      targetDrawDate = new Date(todayDraw);
-      targetDrawDate.setUTCDate(targetDrawDate.getUTCDate() + 1);
-    } else {
-      // Ticket is for today's draw
-      targetDrawDate = todayDraw;
-    }
+  if (nextDrawDate.getTime() <= purchaseTimestamp) {
+    nextDrawDate.setUTCDate(nextDrawDate.getUTCDate() + 1);
   }
   
-  // Format as DD/MM/YYYY (UTC)
-  const day = String(targetDrawDate.getUTCDate()).padStart(2, '0');
-  const month = String(targetDrawDate.getUTCMonth() + 1).padStart(2, '0');
-  const year = targetDrawDate.getUTCFullYear();
+  while (excludeSundays && nextDrawDate.getUTCDay() === 0) {
+    nextDrawDate.setUTCDate(nextDrawDate.getUTCDate() + 1);
+  }
+  
+  const day = String(nextDrawDate.getUTCDate()).padStart(2, '0');
+  const month = String(nextDrawDate.getUTCMonth() + 1).padStart(2, '0');
+  const year = nextDrawDate.getUTCFullYear();
   
   return {
     drawDate: `${day}/${month}/${year}`,
-    drawTime: drawTime
+    drawTime: defaultDrawTime
   };
 }
 

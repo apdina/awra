@@ -80,7 +80,8 @@ export default function ChatContainer({ roomId, className, onRoomChange }: ChatC
     limit: 30, // Reduced from 50 to 30 for better performance
     cursor: undefined // No cursor for now
   });
-  const onlineUsersData = useQuery(api.chat.getOnlineUsers, { roomId });
+  const onlineUsersRaw = useQuery(api.chat.getOnlineUsers, { roomId });
+  const onlineUsersData = useMemo(() => onlineUsersRaw || [], [onlineUsersRaw]);
 
   // Convex mutations
   const sendMessageMutation = useMutation(api.chat.sendMessage);

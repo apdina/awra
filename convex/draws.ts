@@ -65,41 +65,37 @@ export const getCountdownData = query({
   handler: async (ctx): Promise<any> => {
     const now = Date.now();
     
-    // Get current draw from database first
-    const currentDraw = await ctx.db
-      .query("dailyDraws")
-      .withIndex("by_status", (q) => 
-        q.eq("status", "active").gte("endTime", now)
-      )
-      .first();
-
-    if (!currentDraw) {
-      // If no active draw, find upcoming
-      const upcomingDraw = await ctx.db
+    // Parallel query active and upcoming draws
+    const [currentDrawRaw, upcomingDrawRaw] = await Promise.all([
+      ctx.db
+        .query("dailyDraws")
+        .withIndex("by_status", (q) => 
+          q.eq("status", "active").gte("endTime", now)
+        )
+        .first(),
+      ctx.db
         .query("dailyDraws")
         .withIndex("by_status", (q) => 
           q.eq("status", "upcoming").gte("endTime", now)
         )
         .order("asc")
-        .first();
+        .first()
+    ]);
 
-      if (!upcomingDraw) {
-        return {
-          hours: 0,
-          minutes: 0,
-          seconds: 0,
-          totalSeconds: 0,
-          isExpired: true,
-          cached: false,
-          timestamp: now
-        };
-      }
-
-      // Use upcoming draw
-      return processDrawForCountdown(upcomingDraw, ctx, now);
+    const drawToProcess = currentDrawRaw || upcomingDrawRaw;
+    if (!drawToProcess) {
+      return {
+        hours: 0,
+        minutes: 0,
+        seconds: 0,
+        totalSeconds: 0,
+        isExpired: true,
+        cached: false,
+        timestamp: now
+      };
     }
-    
-    return processDrawForCountdown(currentDraw, ctx, now);
+
+    return processDrawForCountdown(drawToProcess, ctx, now);
   },
 });
 
@@ -135,10 +131,10 @@ async function processDrawForCountdown(draw: any, ctx: any, now: number): Promis
     }
     
     // Skip Sundays if configured
-    const excludeSundaysConfig = await ctx.db
-      .query("systemConfig")
-      .filter((q: any) => q.eq(q.field("key"), "exclude_sundays"))
-      .first();
+    // Batch fetch all configs once
+    const configs = await ctx.db.query("systemConfig").collect();
+    const excludeSundaysConfig = configs.find((c: any) => c.key === "exclude_sundays");
+    const defaultTimeConfig = configs.find((c: any) => c.key === "default_draw_time");
     
     const excludeSundays = excludeSundaysConfig?.value !== false;
     while (excludeSundays && nextDate.getUTCDay() === 0) {
@@ -214,23 +210,38 @@ export const getCurrentDraw = query({
 export const getDrawHistory = query({
   args: {
     limit: v.optional(v.number()),
+    cursor: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const limit = args.limit || 50;
+    const limit = Math.min(args.limit || 50, 100);
+    const cursorTime = args.cursor ? parseInt(args.cursor) : null;
 
-    // Get completed draws with winning numbers, ordered by most recent first
-    const completedDraws = await ctx.db
-      .query("dailyDraws")
-      .withIndex("by_status", (q) => q.eq("status", "completed"))
-      .order("desc")
-      .take(limit);
+    let completedDraws;
+    if (cursorTime) {
+      completedDraws = await ctx.db
+        .query("dailyDraws")
+        .withIndex("by_status", (q) => q.eq("status", "completed"))
+        .filter((q) => q.lt(q.field("updatedAt"), cursorTime))
+        .order("desc")
+        .take(limit + 1);
+    } else {
+      completedDraws = await ctx.db
+        .query("dailyDraws")
+        .withIndex("by_status", (q) => q.eq("status", "completed"))
+        .order("desc")
+        .take(limit + 1);
+    }
 
-    // Filter to only include draws with winning numbers
-    const drawsWithWinners = completedDraws.filter(draw => draw.winningNumber != null);
+    // Filter winning numbers + pagination slice
+    const drawsWithWinners = completedDraws.filter((draw: any) => draw.winningNumber != null);
+    const hasMore = drawsWithWinners.length > limit;
+    const paginated = hasMore ? drawsWithWinners.slice(0, limit) : drawsWithWinners;
 
     return {
-      draws: drawsWithWinners,
+      draws: paginated,
       count: drawsWithWinners.length,
+      hasMore,
+      nextCursor: hasMore ? paginated[paginated.length - 1].updatedAt.toString() : null,
     };
   },
 });
@@ -288,11 +299,10 @@ export const setWinningNumber = mutation({
     }
 
     // Get default draw time
-    const defaultTimeConfig = await ctx.db
-      .query("systemConfig")
-      .filter((q: any) => q.eq("key", "default_draw_time"))
-      .first();
+// Batch fetch configs at top - already handled
     
+    const configs = await ctx.db.query("systemConfig").collect();
+    const defaultTimeConfig = configs.find((c: any) => c.key === "default_draw_time");
     const drawTime = (defaultTimeConfig?.value as string) || "21:40";
     const [hours, minutes] = drawTime.split(':').map(Number);
     
@@ -406,12 +416,9 @@ export const getOrCreateCurrentDraw = query({
   handler: async (ctx, args) => {
     const now = Date.now();
     
-    // Get default draw time from system config
-    const defaultTimeConfig = await ctx.db
-      .query("systemConfig")
-      .filter((q: any) => q.eq("key", "default_draw_time"))
-      .first();
-    
+// Batch fetch configs at top
+    const configs = await ctx.db.query("systemConfig").collect();
+    const defaultTimeConfig = configs.find((c: any) => c.key === "default_draw_time");
     const defaultDrawTime = (defaultTimeConfig?.value as string) || "21:40";
     
     // Find the most recent active or upcoming draw
@@ -427,11 +434,10 @@ export const getOrCreateCurrentDraw = query({
       return {
         id: activeDraw._id,
         draw_date: activeDraw.drawId,
-        draw_time: new Date(activeDraw.drawingTime).toLocaleTimeString('en-GB', {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false
-        }),
+        draw_time: (() => {
+          const d = new Date(activeDraw.drawingTime);
+          return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+        })(),
         winning_number: activeDraw.winningNumber || null,
         is_processed: activeDraw.status === "completed",
         status: activeDraw.status,
@@ -564,14 +570,16 @@ export const setDrawTime = mutation({
         });
       }
 
-      // Schedule cache invalidation action (must be outside mutation)
+      // Schedule cache invalidation actions (must be outside mutation)
       await ctx.scheduler.runAfter(0, internal.draws.invalidateCurrentDrawCacheInternal);
+      // FIXED: Invalidate ticket caches so new tickets show correct draw time
+      await ctx.scheduler.runAfter(50, internal.draws.invalidateTicketCachesInternal);
 
       return {
         success: true,
         drawId: args.drawDate,
         drawTime: args.drawTime,
-        message: "Draw time updated successfully",
+        message: "Draw time updated successfully - ticket caches invalidated",
       };
     } else {
       // Create new draw
@@ -610,14 +618,16 @@ export const setDrawTime = mutation({
         });
       }
 
-      // Schedule cache invalidation action (must be outside mutation)
+      // Schedule cache invalidation actions (must be outside mutation)
       await ctx.scheduler.runAfter(0, internal.draws.invalidateCurrentDrawCacheInternal);
+      // FIXED: Invalidate ticket caches so new tickets show correct draw time
+      await ctx.scheduler.runAfter(50, internal.draws.invalidateTicketCachesInternal);
 
       return {
         success: true,
         drawId: args.drawDate,
         drawTime: args.drawTime,
-        message: "Draw created successfully",
+        message: "Draw created successfully - ticket caches invalidated",
         _id: drawId,
       };
     }
@@ -739,6 +749,32 @@ export const invalidateCurrentDrawCacheInternal = internalAction({
 });
 
 /**
+ * Invalidate ticket caches when draw time changes
+ * Called after setDrawTime mutation - CRITICAL for ticket drawTime fix
+ */
+export const invalidateTicketCachesInternal = internalAction({
+  handler: async (ctx) => {
+    try {
+      const redis = getRedisClient();
+      
+      if (redis) {
+        // Clear all potential ticket cache keys
+        await redis.del('user_tickets:*');
+        await redis.del('tickets:*');
+        await redis.del('ticket_list:*');
+        // Also clear legacy caches if they exist
+        await redis.del('legacy_tickets:*');
+        console.log('✅ TICKET CACHES invalidated - new tickets will show correct draw time');
+      } else {
+        console.log('⚠️ Redis not configured, skipping ticket cache invalidation');
+      }
+    } catch (error) {
+      console.error('❌ Ticket cache invalidation failed (non-critical):', error);
+    }
+  },
+});
+
+/**
  * Helper function to create the next draw with Sunday 48H logic
  * 
  * ⏰ TIME CRITICAL CODE
@@ -761,17 +797,10 @@ async function createNextDraw(ctx: any, now: number, baseDate?: Date) {
     nextDate.setUTCDate(nextDate.getUTCDate() + 1);
   }
 
-  // Get settings for Sunday exclusion and default draw time
-  const excludeSundaysConfig = await ctx.db
-    .query("systemConfig")
-    .filter((q: any) => q.eq(q.field("key"), "exclude_sundays"))
-    .first();
-  
-  const defaultTimeConfig = await ctx.db
-    .query("systemConfig")
-    .filter((q: any) => q.eq(q.field("key"), "default_draw_time"))
-    .first();
-
+  // Batch fetch configs
+  const configs = await ctx.db.query("systemConfig").collect();
+  const excludeSundaysConfig = configs.find((c: any) => c.key === "exclude_sundays");
+  const defaultTimeConfig = configs.find((c: any) => c.key === "default_draw_time");
   const excludeSundays = excludeSundaysConfig?.value !== false; // Default true
   const defaultDrawTime = (defaultTimeConfig?.value as string) || "21:40";
 
@@ -826,11 +855,10 @@ async function createNextDraw(ctx: any, now: number, baseDate?: Date) {
       message: baseDate ? "Next draw already exists" : "First draw already exists",
       next_draw: {
         date: nextDrawId,
-        time: new Date(existingNextDraw.drawingTime).toLocaleTimeString('en-GB', {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false
-        }),
+        time: (() => {
+          const d = new Date(existingNextDraw.drawingTime);
+          return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+        })(),
         already_exists: true
       }
     };
@@ -866,11 +894,10 @@ async function createNextDraw(ctx: any, now: number, baseDate?: Date) {
     next_draw: {
       date: nextDrawId,
       dayOfWeek: dayName,
-      time: new Date(drawingTime).toLocaleTimeString('en-GB', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-      }),
+      time: (() => {
+        const d = new Date(drawingTime);
+        return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+      })(),
       draw_id: newDrawId,
       duration_hours: drawDurationHours,
       created: true
@@ -929,11 +956,10 @@ async function checkAndIncrementDrawHelper(ctx: any, adminSecret: string) {
       message: "Current draw is still active",
       current_draw: {
         date: currentDraw.drawId,
-        time: new Date(currentDraw.drawingTime).toLocaleTimeString('en-GB', {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false
-        }),
+        time: (() => {
+          const d = new Date(currentDraw.drawingTime);
+          return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+        })(),
         time_remaining: timeRemaining
       }
     };

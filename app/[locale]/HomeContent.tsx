@@ -11,13 +11,34 @@ interface HomeContentProps {
   initialDraw: Draw;
 }
 
-/**
- * UNIFIED RESPONSIVE Home Content Component
- * Works on both mobile and desktop using Tailwind responsive prefixes
- * All logic extracted to useHomeLogic hook
- * Eliminated HomeContentMobile.tsx duplication
- */
+interface IconProps {
+  children: React.ReactNode;
+  label: string;
+  className?: string;
+}
 
+function EnhancedIcon({ children, label, className = "" }: IconProps) {
+  return (
+    <div 
+      className={`relative p-2 sm:p-3 rounded-xl bg-white/10 backdrop-blur-sm shadow-lg group-hover:shadow-2xl transition-all duration-300 will-change-transform ${className}`} 
+      aria-label={label} 
+      role="img" 
+      aria-hidden="true"
+    >
+      <div className="relative z-10">
+        <div className="w-7 h-7 sm:w-8 sm:h-8 lg:w-10 lg:h-10 mx-auto mb-2">
+          {children}
+        </div>
+      </div>
+      {/* Lighter glow for perf */}
+      <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-yellow-400/20 via-blue-400/20 to-purple-400/20 opacity-0 group-hover:opacity-70 transition-all duration-300 blur-sm -z-10" />
+    </div>
+  );
+}
+
+/**
+ * UNIFIED RESPONSIVE Home Content Component - Optimized for mobile perf
+ */
 export default function HomeContent({ locale, initialDraw }: HomeContentProps) {
   const {
     t,
@@ -38,92 +59,104 @@ export default function HomeContent({ locale, initialDraw }: HomeContentProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 pb-20">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 pb-20 select-none">
       <div className="max-w-md md:max-w-2xl mx-auto px-4 py-6 space-y-6">
-        {/* Simple Countdown Timer Card */}
         <SimpleCountdown />
         
-        {/* Row 1: Play Now & Check Winning Numbers */}
         <div className="grid grid-cols-2 gap-4">
           <Link
             href={`/${locale}/play`}
-            className="group bg-gradient-to-br from-green-500 to-green-700 rounded-xl p-6 text-center hover:shadow-lg md:hover:shadow-2xl md:hover:shadow-green-500/25 hover:scale-105 transition-all duration-300 md:motion-preset-slide-up md:motion-delay-100 overflow-hidden relative"
+            className="group bg-gradient-to-br from-green-500/90 to-green-700/90 backdrop-blur-sm rounded-2xl p-5 sm:p-6 text-center hover:shadow-xl hover:shadow-green-500/30 hover:scale-105 focus-visible:ring-2 focus-visible:ring-green-400/50 transition-all duration-300 relative border border-green-400/20 hover:border-green-400/40 select-none will-change-transform"
           >
-            <Play className="w-8 h-8 text-white mx-auto mb-2 group-hover:rotate-12 md:group-hover:rotate-12 transition-transform duration-300" />
-            <h3 className="text-white font-bold text-sm">{t('home.play_now')}</h3>
-            <p className="text-green-100 text-xs mt-1">{t('home.buy_tickets')}</p>
+            <EnhancedIcon label="Play game">
+              <Play className="w-full h-full text-green-400 mx-auto group-hover:animate-bounce transition-transform duration-300" />
+            </EnhancedIcon>
+            <h3 className="text-white font-bold text-sm mt-2">{t('home.play_now')}</h3>
+            <p className="text-green-100 text-xs">{t('home.buy_tickets')}</p>
           </Link>
 
           <Link
             href={`/${locale}/winning-numbers`}
-            className="group bg-gradient-to-br from-purple-500 to-purple-700 rounded-xl p-6 text-center hover:shadow-lg md:hover:shadow-2xl md:hover:shadow-purple-500/25 hover:scale-105 transition-all duration-300 md:motion-preset-slide-up md:motion-delay-200 overflow-hidden relative"
+            className="group bg-gradient-to-br from-purple-500/90 to-purple-700/90 backdrop-blur-sm rounded-2xl p-5 sm:p-6 text-center hover:shadow-xl hover:shadow-purple-500/30 hover:scale-105 focus-visible:ring-2 focus-visible:ring-purple-400/50 transition-all duration-300 relative border border-purple-400/20 hover:border-purple-400/40 select-none will-change-transform"
           >
-            <Trophy className="w-8 h-8 text-white mx-auto mb-2 group-hover:rotate-12 md:group-hover:rotate-12 transition-transform duration-300" />
-            <h3 className="text-white font-bold text-sm">{t('home.winning_numbers')}</h3>
-            <p className="text-purple-100 text-xs mt-1">{t('home.check_results')}</p>
+            <EnhancedIcon label="Winning numbers">
+              <Trophy className="w-full h-full text-purple-400 mx-auto group-hover:scale-110 transition-transform duration-300" />
+            </EnhancedIcon>
+            <h3 className="text-white font-bold text-sm mt-2">{t('home.winning_numbers')}</h3>
+            <p className="text-purple-100 text-xs">{t('home.check_results')}</p>
           </Link>
         </div>
 
-        {/* Row 2: Chat & Numbers Meaning */}
         <div className="grid grid-cols-2 gap-4">
           <Link
             href={`/${locale}/chat`}
-            className="group bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl p-6 text-center hover:shadow-lg md:hover:shadow-2xl md:hover:shadow-blue-500/25 hover:scale-105 transition-all duration-300 md:motion-preset-slide-up md:motion-delay-300 overflow-hidden relative"
+            className="group bg-gradient-to-br from-blue-500/90 to-blue-700/90 backdrop-blur-sm rounded-2xl p-5 sm:p-6 text-center hover:shadow-xl hover:shadow-blue-500/30 hover:scale-105 focus-visible:ring-2 focus-visible:ring-blue-400/50 transition-all duration-300 relative border border-blue-400/20 hover:border-blue-400/40 select-none will-change-transform"
           >
-            <MessageSquare className="w-8 h-8 text-white mx-auto mb-2 group-hover:rotate-12 md:group-hover:rotate-12 transition-transform duration-300" />
-            <h3 className="text-white font-bold text-sm">{t('home.chat')}</h3>
-            <p className="text-blue-100 text-xs mt-1">{t('home.community')}</p>
+            <EnhancedIcon label="Chat room">
+              <MessageSquare className="w-full h-full text-blue-400 mx-auto group-hover:animate-pulse transition-transform duration-300" />
+            </EnhancedIcon>
+            <h3 className="text-white font-bold text-sm mt-2">{t('home.chat')}</h3>
+            <p className="text-blue-100 text-xs">{t('home.community')}</p>
           </Link>
 
           <Link
             href={`/${locale}/numbers`}
-            className="group bg-gradient-to-br from-orange-500 to-orange-700 rounded-xl p-6 text-center hover:shadow-lg md:hover:shadow-2xl md:hover:shadow-orange-500/25 hover:scale-105 transition-all duration-300 md:motion-preset-slide-up md:motion-delay-400 overflow-hidden relative"
+            className="group bg-gradient-to-br from-orange-500/90 to-orange-700/90 backdrop-blur-sm rounded-2xl p-5 sm:p-6 text-center hover:shadow-xl hover:shadow-orange-500/30 hover:scale-105 focus-visible:ring-2 focus-visible:ring-orange-400/50 transition-all duration-300 relative border border-orange-400/20 hover:border-orange-400/40 select-none will-change-transform"
           >
-            <HelpCircle className="w-8 h-8 text-white mx-auto mb-2 group-hover:rotate-12 transition-transform duration-300" />
-            <h3 className="text-white font-bold text-sm">{t('home.numbers')}</h3>
-            <p className="text-orange-100 text-xs mt-1">{t('home.meaning')}</p>
+            <EnhancedIcon label="Numbers meaning">
+              <HelpCircle className="w-full h-full text-orange-400 mx-auto group-hover:rotate-6 transition-transform duration-300" />
+            </EnhancedIcon>
+            <h3 className="text-white font-bold text-sm mt-2">{t('home.numbers')}</h3>
+            <p className="text-orange-100 text-xs">{t('home.meaning')}</p>
           </Link>
         </div>
 
-        {/* Row 3: Conditional Auth Links */}
         {!isAuthenticated ? (
           <div className="grid grid-cols-2 gap-4">
             <Link
               href={`/${locale}/register`}
-              className="group bg-gradient-to-br from-yellow-500 to-yellow-700 rounded-xl p-6 text-center hover:shadow-lg md:hover:shadow-2xl md:hover:shadow-yellow-500/25 hover:scale-105 transition-all duration-300 md:motion-preset-slide-up md:motion-delay-500 overflow-hidden relative"
+              className="group bg-gradient-to-br from-yellow-500/90 to-yellow-700/90 backdrop-blur-sm rounded-2xl p-5 sm:p-6 text-center hover:shadow-xl hover:shadow-yellow-500/30 hover:scale-105 focus-visible:ring-2 focus-visible:ring-yellow-400/50 transition-all duration-300 relative border border-yellow-400/20 hover:border-yellow-400/40 select-none will-change-transform"
             >
-              <Coins className="w-8 h-8 text-white mx-auto mb-2 group-hover:rotate-12 md:group-hover:rotate-12 transition-transform duration-300" />
-              <h3 className="text-white font-bold text-sm">{t('home.get_coins')}</h3>
-              <p className="text-yellow-100 text-xs mt-1">{t('home.register_free')}</p>
+              <EnhancedIcon label="Get free coins">
+                <Coins className="w-full h-full text-yellow-400 mx-auto group-hover:animate-ping transition-transform duration-300" />
+              </EnhancedIcon>
+              <h3 className="text-white font-bold text-sm mt-2">{t('home.get_coins')}</h3>
+              <p className="text-yellow-100 text-xs">{t('home.register_free')}</p>
             </Link>
 
             <Link
               href={`/${locale}/register`}
-              className="bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-lg p-6 text-center hover:shadow-lg hover:scale-105 transition-all"
+              className="group bg-gradient-to-br from-indigo-500/90 to-indigo-700/90 backdrop-blur-sm rounded-2xl p-5 sm:p-6 text-center hover:shadow-xl hover:shadow-indigo-500/30 hover:scale-105 focus-visible:ring-2 focus-visible:ring-indigo-400/50 transition-all duration-300 relative border border-indigo-400/20 hover:border-indigo-400/40 select-none will-change-transform"
             >
-              <LogIn className="w-8 h-8 text-white mx-auto mb-2" />
-              <h3 className="text-white font-bold text-sm">{t('home.my_account')}</h3>
-              <p className="text-indigo-100 text-xs mt-1">{t('home.create_account')}</p>
+              <EnhancedIcon label="Create account">
+                <LogIn className="w-full h-full text-indigo-400 mx-auto group-hover:rotate-180 transition-transform duration-300" />
+              </EnhancedIcon>
+              <h3 className="text-white font-bold text-sm mt-2">{t('home.my_account')}</h3>
+              <p className="text-indigo-100 text-xs">{t('home.create_account')}</p>
             </Link>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-4">
             <Link
               href={`/${locale}/account`}
-              className="bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-lg p-6 text-center hover:shadow-lg hover:scale-105 transition-all"
+              className="group bg-gradient-to-br from-indigo-500/90 to-indigo-700/90 backdrop-blur-sm rounded-2xl p-5 sm:p-6 text-center hover:shadow-xl hover:shadow-indigo-500/30 hover:scale-105 focus-visible:ring-2 focus-visible:ring-indigo-400/50 transition-all duration-300 relative border border-indigo-400/20 hover:border-indigo-400/40 select-none will-change-transform"
             >
-              <BookOpen className="w-8 h-8 text-white mx-auto mb-2" />
-              <h3 className="text-white font-bold text-sm">{t('home.my_account')}</h3>
-              <p className="text-indigo-100 text-xs mt-1">{t('home.profile')}</p>
+              <EnhancedIcon label="My profile">
+                <BookOpen className="w-full h-full text-indigo-400 mx-auto group-hover:animate-pulse transition-transform duration-300" />
+              </EnhancedIcon>
+              <h3 className="text-white font-bold text-sm mt-2">{t('home.my_account')}</h3>
+              <p className="text-indigo-100 text-xs">{t('home.profile')}</p>
             </Link>
 
             <Link
               href={`/${locale}/how-to-play`}
-              className="bg-gradient-to-br from-slate-700 to-slate-800 rounded-lg p-6 text-center hover:shadow-lg hover:scale-105 transition-all border border-slate-600"
+              className="group bg-gradient-to-br from-slate-700/90 to-slate-800/90 backdrop-blur-sm rounded-2xl p-5 sm:p-6 text-center hover:shadow-xl hover:shadow-slate-500/30 hover:scale-105 focus-visible:ring-2 focus-visible:ring-slate-400/50 transition-all duration-300 relative border border-slate-500/30 hover:border-slate-400/50 select-none will-change-transform"
             >
-              <BookOpen className="w-8 h-8 text-blue-400 mx-auto mb-2" />
-              <h3 className="text-white font-bold text-sm">{t('home.how_to_play')}</h3>
-              <p className="text-slate-300 text-xs mt-1">{t('home.learn_rules')}</p>
+              <EnhancedIcon label="How to play">
+                <BookOpen className="w-full h-full text-blue-400 mx-auto group-hover:animate-bounce transition-transform duration-300" />
+              </EnhancedIcon>
+              <h3 className="text-white font-bold text-sm mt-2">{t('home.how_to_play')}</h3>
+              <p className="text-slate-300 text-xs">{t('home.learn_rules')}</p>
             </Link>
           </div>
         )}
