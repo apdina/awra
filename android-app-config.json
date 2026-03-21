@@ -1,0 +1,32 @@
+{
+  "convex_url": "https://confident-koala-298.convex.cloud",
+  "admin_secret": "newPassstronger1",
+  "endpoint": "/api/mutation/unifiedTickets:processDraw",
+  "request_format": {
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "drawDate": "19/03/2026",
+      "winningNumber": 34,
+      "adminSecret": "newPassstronger1"
+    }
+  },
+  "notes": {
+    "drawDate_format": "DD/MM/YYYY",
+    "winningNumber_range": "1-200",
+    "drawTime": "NOT REQUIRED - Auto-fetched from system config",
+    "csrf_required": "NO - Direct Convex API call",
+    "session_required": "NO",
+    "what_it_does": [
+      "Fetches current draw time from system config automatically",
+      "Sets winning number in database",
+      "Processes all tickets for that draw",
+      "Calculates winners (exact/partial matches)",
+      "Credits coins to winners automatically",
+      "Returns list of winners and total payout"
+    ],
+    "why_no_drawTime": "Draw time changes frequently in admin panel. The API fetches it automatically from systemConfig so the Android app doesn't need to know or update it."
+  }
+}

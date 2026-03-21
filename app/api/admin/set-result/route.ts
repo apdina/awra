@@ -80,7 +80,7 @@ export const POST = csrfProtect(async (request: NextRequest) => {
     try {
       const unifiedResult = await convex.mutation(api.unifiedTickets.processDraw, {
         drawDate: draw_date,
-        drawTime: DEFAULT_DRAW_TIME,
+        // drawTime is optional - will be fetched from system config automatically
         winningNumber: winning_number,
         adminSecret: adminSecret, // Pass admin secret to bypass auth
       });

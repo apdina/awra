@@ -1,0 +1,33 @@
+====================================
+ANDROID APP CONFIGURATION
+====================================
+
+CONVEX URL: https://confident-koala-298.convex.cloud
+Admin Password: newPassstronger1
+
+ENDPOINT:
+POST /api/mutation/unifiedTickets:processDraw
+
+DATA TO SEND (Only 3 fields):
+{
+  "drawDate": "19/03/2026",
+  "winningNumber": 34,
+  "adminSecret": "newPassstronger1"
+}
+
+HEADERS:
+- Content-Type: application/json
+
+DATE FORMAT: DD/MM/YYYY
+NUMBER RANGE: 1-200
+
+DRAW TIME: NOT NEEDED!
+(Auto-fetched from system config)
+
+NO CSRF REQUIRED!
+NO SESSION REQUIRED!
+NO COOKIES REQUIRED!
+
+Just one simple POST request to Convex.
+
+====================================

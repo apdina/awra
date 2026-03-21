@@ -135,10 +135,37 @@ async function processDrawForCountdown(draw: any, ctx: any, now: number): Promis
     const configs = await ctx.db.query("systemConfig").collect();
     const excludeSundaysConfig = configs.find((c: any) => c.key === "exclude_sundays");
     const defaultTimeConfig = configs.find((c: any) => c.key === "default_draw_time");
+    const holidaysConfig = configs.find((c: any) => c.key === "holiday_exceptions");
     
     const excludeSundays = excludeSundaysConfig?.value !== false;
+    const holidays: string[] = holidaysConfig ? JSON.parse(holidaysConfig.value as string) : [];
+    
+    // Helper function to check if a date is a holiday
+    const isHoliday = (date: Date): boolean => {
+      const d = String(date.getUTCDate()).padStart(2, '0');
+      const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+      const y = date.getUTCFullYear();
+      const dateStr = `${d}/${m}/${y}`;
+      return holidays.includes(dateStr);
+    };
+    
+    // Skip Sundays
     while (excludeSundays && nextDate.getUTCDay() === 0) {
       nextDate.setUTCDate(nextDate.getUTCDate() + 1);
+    }
+    
+    // Skip holidays
+    while (isHoliday(nextDate)) {
+      const d = String(nextDate.getUTCDate()).padStart(2, '0');
+      const m = String(nextDate.getUTCMonth() + 1).padStart(2, '0');
+      const y = nextDate.getUTCFullYear();
+      console.log(`🎉 Holiday detected in countdown: ${d}/${m}/${y} - Skipping to next day`);
+      nextDate.setUTCDate(nextDate.getUTCDate() + 1);
+      
+      // Re-check Sunday after skipping holiday
+      if (excludeSundays && nextDate.getUTCDay() === 0) {
+        nextDate.setUTCDate(nextDate.getUTCDate() + 1);
+      }
     }
     
     nextDate.setUTCHours(hours, minutes, 0, 0);
@@ -456,7 +483,22 @@ export const getOrCreateCurrentDraw = query({
       .filter((q: any) => q.eq("key", "exclude_sundays"))
       .first();
     
+    const holidaysConfig = await ctx.db
+      .query("systemConfig")
+      .filter((q: any) => q.eq("key", "holiday_exceptions"))
+      .first();
+    
     const excludeSundays = excludeSundaysConfig?.value !== false; // Default true
+    const holidays: string[] = holidaysConfig ? JSON.parse(holidaysConfig.value as string) : [];
+    
+    // Helper function to check if a date is a holiday
+    const isHoliday = (date: Date): boolean => {
+      const d = String(date.getUTCDate()).padStart(2, '0');
+      const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+      const y = date.getUTCFullYear();
+      const dateStr = `${d}/${m}/${y}`;
+      return holidays.includes(dateStr);
+    };
     
     // Calculate next draw date (UTC) - this is a fallback
     let nextDrawDate = new Date();
@@ -473,6 +515,20 @@ export const getOrCreateCurrentDraw = query({
     // Skip Sundays if configured (UTC)
     while (excludeSundays && nextDrawDate.getUTCDay() === 0) {
       nextDrawDate.setUTCDate(nextDrawDate.getUTCDate() + 1);
+    }
+    
+    // Skip holidays
+    while (isHoliday(nextDrawDate)) {
+      const d = String(nextDrawDate.getUTCDate()).padStart(2, '0');
+      const m = String(nextDrawDate.getUTCMonth() + 1).padStart(2, '0');
+      const y = nextDrawDate.getUTCFullYear();
+      console.log(`🎉 Holiday detected in fallback: ${d}/${m}/${y} - Skipping to next day`);
+      nextDrawDate.setUTCDate(nextDrawDate.getUTCDate() + 1);
+      
+      // Re-check Sunday after skipping holiday
+      if (excludeSundays && nextDrawDate.getUTCDay() === 0) {
+        nextDrawDate.setUTCDate(nextDrawDate.getUTCDate() + 1);
+      }
     }
     
     // Format as DD/MM/YYYY (UTC)
@@ -801,8 +857,20 @@ async function createNextDraw(ctx: any, now: number, baseDate?: Date) {
   const configs = await ctx.db.query("systemConfig").collect();
   const excludeSundaysConfig = configs.find((c: any) => c.key === "exclude_sundays");
   const defaultTimeConfig = configs.find((c: any) => c.key === "default_draw_time");
+  const holidaysConfig = configs.find((c: any) => c.key === "holiday_exceptions");
+  
   const excludeSundays = excludeSundaysConfig?.value !== false; // Default true
   const defaultDrawTime = (defaultTimeConfig?.value as string) || "21:40";
+  const holidays: string[] = holidaysConfig ? JSON.parse(holidaysConfig.value as string) : [];
+
+  // Helper function to check if a date is a holiday
+  const isHoliday = (date: Date): boolean => {
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const year = date.getUTCFullYear();
+    const dateStr = `${day}/${month}/${year}`;
+    return holidays.includes(dateStr);
+  };
 
   // Parse default draw time (UTC)
   const [hours, minutes] = defaultDrawTime.split(':');
@@ -827,6 +895,21 @@ async function createNextDraw(ctx: any, now: number, baseDate?: Date) {
     console.log('📅 Sunday skip configured: Moving to Monday');
   }
 
+  // Skip holidays
+  while (isHoliday(nextDate)) {
+    const day = String(nextDate.getUTCDate()).padStart(2, '0');
+    const month = String(nextDate.getUTCMonth() + 1).padStart(2, '0');
+    const year = nextDate.getUTCFullYear();
+    console.log(`🎉 Holiday detected: ${day}/${month}/${year} - Skipping to next day`);
+    nextDate.setUTCDate(nextDate.getUTCDate() + 1);
+    
+    // Re-check Sunday exclusion after skipping holiday
+    if (excludeSundays && nextDate.getUTCDay() === 0) {
+      nextDate.setUTCDate(nextDate.getUTCDate() + 1);
+      console.log('📅 Sunday skip after holiday: Moving to Monday');
+    }
+  }
+
   // If the calculated draw time is still in the past, move to next day (UTC)
   while (nextDate.getTime() <= now) {
     nextDate.setUTCDate(nextDate.getUTCDate() + 1);
@@ -834,6 +917,20 @@ async function createNextDraw(ctx: any, now: number, baseDate?: Date) {
     // Re-check Sunday exclusion (UTC)
     while (excludeSundays && nextDate.getUTCDay() === 0) {
       nextDate.setUTCDate(nextDate.getUTCDate() + 1);
+    }
+    
+    // Re-check holidays
+    while (isHoliday(nextDate)) {
+      const day = String(nextDate.getUTCDate()).padStart(2, '0');
+      const month = String(nextDate.getUTCMonth() + 1).padStart(2, '0');
+      const year = nextDate.getUTCFullYear();
+      console.log(`🎉 Holiday detected: ${day}/${month}/${year} - Skipping to next day`);
+      nextDate.setUTCDate(nextDate.getUTCDate() + 1);
+      
+      // Re-check Sunday after skipping holiday
+      if (excludeSundays && nextDate.getUTCDay() === 0) {
+        nextDate.setUTCDate(nextDate.getUTCDate() + 1);
+      }
     }
   }
 

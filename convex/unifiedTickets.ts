@@ -160,7 +160,22 @@ async function calculateDrawForPurchase(
     .filter((q: any) => q.eq(q.field("key"), "exclude_sundays"))
     .first();
   
+  const holidaysConfig = await ctx.db
+    .query("systemConfig")
+    .filter((q: any) => q.eq(q.field("key"), "holiday_exceptions"))
+    .first();
+  
   const excludeSundays = excludeSundaysConfig?.value !== false;
+  const holidays: string[] = holidaysConfig ? JSON.parse(holidaysConfig.value as string) : [];
+  
+  // Helper function to check if a date is a holiday
+  const isHoliday = (date: Date): boolean => {
+    const d = String(date.getUTCDate()).padStart(2, '0');
+    const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const y = date.getUTCFullYear();
+    const dateStr = `${d}/${m}/${y}`;
+    return holidays.includes(dateStr);
+  };
   
   let nextDrawDate = new Date();
   nextDrawDate.setUTCHours(0, 0, 0, 0);
@@ -172,8 +187,19 @@ async function calculateDrawForPurchase(
     nextDrawDate.setUTCDate(nextDrawDate.getUTCDate() + 1);
   }
   
+  // Skip Sundays
   while (excludeSundays && nextDrawDate.getUTCDay() === 0) {
     nextDrawDate.setUTCDate(nextDrawDate.getUTCDate() + 1);
+  }
+  
+  // Skip holidays
+  while (isHoliday(nextDrawDate)) {
+    nextDrawDate.setUTCDate(nextDrawDate.getUTCDate() + 1);
+    
+    // Re-check Sunday after skipping holiday
+    if (excludeSundays && nextDrawDate.getUTCDay() === 0) {
+      nextDrawDate.setUTCDate(nextDrawDate.getUTCDate() + 1);
+    }
   }
   
   const day = String(nextDrawDate.getUTCDate()).padStart(2, '0');
@@ -511,7 +537,7 @@ export const getUnifiedTicketById = query({
 export const processDraw = mutation({
   args: {
     drawDate: v.string(), // DD/MM/YYYY
-    drawTime: v.string(), // HH:MM
+    drawTime: v.optional(v.string()), // HH:MM - optional, fetched from system config if not provided
     winningNumber: v.number(),
     adminSecret: v.optional(v.string()), // Optional admin secret to bypass auth
   },
@@ -538,9 +564,19 @@ export const processDraw = mutation({
       throw new Error(`Winning number must be between ${MIN_NUMBER} and ${MAX_NUMBER}`);
     }
 
+    // Get draw time from system config if not provided
+    let drawTime = args.drawTime;
+    if (!drawTime) {
+      const drawTimeConfig = await ctx.db
+        .query("systemConfig")
+        .filter((q) => q.eq(q.field("key"), "default_draw_time"))
+        .first();
+      drawTime = (drawTimeConfig?.value as string) || "21:40";
+    }
+
     // Parse draw date and time to validate and calculate window
     const [day, month, year] = args.drawDate.split('/').map(Number);
-    const [hours, minutes] = args.drawTime.split(':').map(Number);
+    const [hours, minutes] = drawTime.split(':').map(Number);
     
     if (!day || !month || !year || !hours || minutes === undefined) {
       throw new Error("Invalid draw date or time format");
@@ -562,7 +598,7 @@ export const processDraw = mutation({
     const windowStartDate = new Date(windowStart);
     const windowEndDate = new Date(drawTimestamp);
     
-    console.log(`Processing draw ${args.drawDate} ${args.drawTime}`);
+    console.log(`Processing draw ${args.drawDate} ${drawTime}`);
     console.log(`24-hour window: ${windowStartDate.toLocaleString()} to ${windowEndDate.toLocaleString()}`);
     console.log(`Winning number: ${args.winningNumber}`);
 
@@ -571,7 +607,7 @@ export const processDraw = mutation({
       .query("unifiedTickets")
       .withIndex("by_draw_status", (q) => 
         q.eq("drawDate", args.drawDate)
-         .eq("drawTime", args.drawTime)
+         .eq("drawTime", drawTime)
          .eq("status", "active")
       )
       .collect();

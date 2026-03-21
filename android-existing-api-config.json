@@ -1,0 +1,39 @@
+{
+  "api_type": "EXISTING - Currently Deployed",
+  "convex_url": "https://confident-koala-298.convex.cloud",
+  "admin_secret": "newPassstronger1",
+  "endpoint": "/api/mutation/unifiedTickets:processDraw",
+  "status": "REQUIRES drawTime parameter (not yet deployed with optional drawTime)",
+  "request_format": {
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "drawDate": "19/03/2026",
+      "drawTime": "21:40",
+      "winningNumber": 34,
+      "adminSecret": "newPassstronger1"
+    }
+  },
+  "notes": {
+    "drawDate_format": "DD/MM/YYYY",
+    "drawTime_format": "HH:MM - REQUIRED until new code is deployed",
+    "winningNumber_range": "1-200",
+    "csrf_required": "NO - Direct Convex API call",
+    "session_required": "NO",
+    "current_limitation": "Must include drawTime parameter because optional drawTime feature is not yet deployed to Convex",
+    "after_deployment": "drawTime will become optional and auto-fetched from system config"
+  },
+  "how_to_get_current_draw_time": {
+    "method": "Query systemConfig",
+    "endpoint": "/api/query/systemConfig:getConfig",
+    "body": {
+      "key": "default_draw_time"
+    },
+    "example_response": {
+      "value": "21:40"
+    }
+  },
+  "example_curl": "curl -X POST https://confident-koala-298.convex.cloud/api/mutation/unifiedTickets:processDraw -H 'Content-Type: application/json' -d '{\"drawDate\":\"19/03/2026\",\"drawTime\":\"21:40\",\"winningNumber\":34,\"adminSecret\":\"newPassstronger1\"}'"
+}
