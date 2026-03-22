@@ -207,7 +207,7 @@ export default function WinningNumbersContent({
           <h2 className="text-2xl font-bold text-yellow-400 mb-4">{t('winning_numbers.todays_winning_number')}</h2>
           <div className="flex justify-center items-center mb-4">
             <WinningNumberDisplay 
-              number={currentDraw.winning_number || (winningNumbers.length > 0 ? winningNumbers[0].number : null) || 142} 
+              number={currentDraw.winning_number || (winningNumbers.length > 0 ? winningNumbers[0].number : null) || 0} 
               size="lg"
               locale={locale as Locale}
             />

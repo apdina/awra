@@ -8,6 +8,7 @@
 import { v } from "convex/values";
 import { mutation, query, action, internalAction, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { internal as unifiedInternal } from "../convex/_generated/api.js";
 import { Redis } from "@upstash/redis";
 
 // Constants
@@ -276,6 +277,18 @@ export const getDrawHistory = query({
 /**
  * Set winning number for a draw (admin function)
  * 
+ * 🚨 CRITICAL: AUTOMATIC WIN PROCESSING
+ * When admin sets a winning number, tickets are automatically processed:
+ * 1. Winning number is set on the draw
+ * 2. processDrawInternal is called immediately 
+ * 3. All eligible tickets are checked for wins
+ * 4. Winning tickets are updated (status: "won", winningAmount set)
+ * 5. User balances are credited instantly
+ * 6. Transaction records are created for audit trail
+ * 
+ * This ensures wins are calculated and balances updated immediately,
+ * not requiring separate manual processing steps.
+ * 
  * ⏰ TIME CRITICAL CODE
  * 
  * Date Format: DD/MM/YYYY (e.g., "20/02/2026")
@@ -302,11 +315,11 @@ export const setWinningNumber = mutation({
     winningNumber: v.number(),
     adminSecret: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: any, args: any): Promise<any> => {
     // Verify admin secret from database
     const config = await ctx.db
       .query("systemConfig")
-      .filter((q) => q.eq(q.field("key"), "adminSecret"))
+      .filter((q: any) => q.eq(q.field("key"), "adminSecret"))
       .first();
     
     const ADMIN_SECRET = config?.value || "";
@@ -353,7 +366,7 @@ export const setWinningNumber = mutation({
     // Find draw by drawId
     let draw = await ctx.db
       .query("dailyDraws")
-      .withIndex("by_drawId", (q) => q.eq("drawId", args.drawId))
+      .withIndex("by_drawId", (q: any) => q.eq("drawId", args.drawId))
       .first();
 
     if (!draw) {
@@ -374,13 +387,47 @@ export const setWinningNumber = mutation({
         updatedAt: now,
       });
 
+      // 🚨 CRITICAL: Process tickets immediately for newly created draw with winning number
+      let processResult;
+      try {
+        processResult = await ctx.runMutation(unifiedInternal.unifiedTickets.processDrawInternal, {
+          drawDate: args.drawId,
+          winningNumber: args.winningNumber,
+        });
+        console.log('✅ New draw created + tickets processed successfully:', processResult);
+      } catch (error: any) {
+        console.error('❌ CRITICAL ERROR: Failed to process tickets for new draw:', error);
+        processResult = {
+          success: false,
+          error: error?.message || 'Unknown error',
+          totalTickets: 0,
+          winners: [],
+          totalPayout: 0,
+          message: 'Draw created but ticket processing failed'
+        };
+      }
+
+      // 🚨 CRITICAL: Invalidate winning numbers cache so fresh data is fetched
+      try {
+        await ctx.scheduler.runAfter(0, internal.draws.invalidateWinningNumbersCacheInternal);
+        console.log('✅ Winning numbers cache invalidation scheduled for new draw');
+      } catch (error: any) {
+        console.error('⚠️ Cache invalidation failed (non-critical):', error?.message || 'Unknown error');
+      }
+
       return {
         success: true,
         drawId: args.drawId,
         winningNumber: args.winningNumber,
         windowStart: windowStartDate.toISOString(),
         windowEnd: windowEndDate.toISOString(),
-        message: `Draw created and winning number set successfully. Valid for tickets purchased between ${windowStartDate.toLocaleString()} and ${windowEndDate.toLocaleString()}`,
+        ticketsProcessed: processResult.totalTickets || 0,
+        winnersCount: processResult.winners?.length || 0,
+        totalPayout: processResult.totalPayout || 0,
+        processingSuccess: processResult.success !== false,
+        message: processResult.success !== false
+          ? `✅ Draw created and winning number set + ${processResult.totalTickets || 0} tickets processed (${processResult.winners?.length || 0} winners)`
+          : `⚠️ Draw created with winning number but ticket processing failed: ${processResult.error || 'Unknown error'}`,
         _id: drawId,
       };
     }
@@ -392,16 +439,38 @@ export const setWinningNumber = mutation({
       updatedAt: now,
     });
 
-    // INSTANT CACHE INVALIDATION - Clear cache immediately
-    await ctx.scheduler.runAfter(0, internal.draws.invalidateWinningNumbersCacheInternal);
-    
-    // INSTANT CACHE REFILL - Fetch and cache new winning numbers immediately
-    await ctx.scheduler.runAfter(100, internal.draws.refreshWinningNumbersCacheInternal, {
-      drawId: args.drawId,
-      winningNumber: args.winningNumber
-    });
+    // 🚨 CRITICAL: Auto-process tickets immediately after setting winning number
+    // This ensures wins are calculated and balances updated instantly
+    let processResult;
+    try {
+      processResult = await ctx.runMutation(unifiedInternal.unifiedTickets.processDrawInternal, {
+        drawDate: args.drawId,
+        winningNumber: args.winningNumber,
+      });
+      console.log('✅ Winning number set + tickets processed successfully:', processResult);
+    } catch (error: any) {
+      console.error('❌ CRITICAL ERROR: Failed to process tickets after setting winning number:', error);
+      // Don't fail the entire operation, but log the error
+      // The winning number is still set, but tickets weren't processed
+      processResult = {
+        success: false,
+        error: error?.message || 'Unknown error',
+        totalTickets: 0,
+        winners: [],
+        totalPayout: 0,
+        message: 'Winning number set but ticket processing failed'
+      };
+    }
 
-    console.log('✅ Instant cache invalidation and refill triggered');
+    // 🚨 CRITICAL: Invalidate winning numbers cache so fresh data is fetched
+    // This ensures users see the updated winning number immediately, not stale cache
+    try {
+      await ctx.scheduler.runAfter(0, internal.draws.invalidateWinningNumbersCacheInternal);
+      console.log('✅ Winning numbers cache invalidation scheduled');
+    } catch (error: any) {
+      console.error('⚠️ Cache invalidation failed (non-critical):', error?.message || 'Unknown error');
+      // Don't fail the winning number update if cache invalidation fails
+    }
 
     return {
       success: true,
@@ -409,7 +478,13 @@ export const setWinningNumber = mutation({
       winningNumber: args.winningNumber,
       windowStart: windowStartDate.toISOString(),
       windowEnd: windowEndDate.toISOString(),
-      message: `Winning number set successfully. Valid for tickets purchased between ${windowStartDate.toLocaleString()} and ${windowEndDate.toLocaleString()}`,
+      ticketsProcessed: processResult.totalTickets || 0,
+      winnersCount: processResult.winners?.length || 0,
+      totalPayout: processResult.totalPayout || 0,
+      processingSuccess: processResult.success !== false,
+      message: processResult.success !== false 
+        ? `✅ Winning number set + ${processResult.totalTickets || 0} tickets processed (${processResult.winners?.length || 0} winners)`
+        : `⚠️ Winning number set but ticket processing failed: ${processResult.error || 'Unknown error'}`,
     };
   },
 });

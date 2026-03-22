@@ -8,7 +8,7 @@
  */
 
 import { v } from "convex/values";
-import { mutation, query, httpAction } from "./_generated/server";
+import { mutation, query, httpAction, internalMutation } from "./_generated/server";
 import { internal, api } from "./_generated/api";
 import { requireAuth } from "./auth";
 import { verifyToken } from "./native_auth";
@@ -534,7 +534,7 @@ export const getUnifiedTicketById = query({
  * - Processes tickets purchased between 19/02/2026 21:40:01 and 20/02/2026 21:40:00
  * - This is the 24-hour window for that draw
  */
-export const processDraw = mutation({
+export const processDrawInternal = internalMutation({
   args: {
     drawDate: v.string(), // DD/MM/YYYY
     drawTime: v.optional(v.string()), // HH:MM - optional, fetched from system config if not provided
@@ -564,15 +564,36 @@ export const processDraw = mutation({
       throw new Error(`Winning number must be between ${MIN_NUMBER} and ${MAX_NUMBER}`);
     }
 
-    // Get draw time from system config if not provided
-    let drawTime = args.drawTime;
-    if (!drawTime) {
-      const drawTimeConfig = await ctx.db
-        .query("systemConfig")
-        .filter((q) => q.eq(q.field("key"), "default_draw_time"))
-        .first();
-      drawTime = (drawTimeConfig?.value as string) || "21:40";
+    // Get drawTime from the actual draw record to ensure consistency
+    const drawRecord = await ctx.db
+      .query("dailyDraws")
+      .withIndex("by_drawId", (q) => q.eq("drawId", args.drawDate))
+      .first();
+    
+    if (!drawRecord) {
+      throw new Error(`Draw ${args.drawDate} not found in database`);
     }
+    
+    // Additional validation: ensure draw record has the correct drawId
+    if (drawRecord.drawId !== args.drawDate) {
+      throw new Error(`Draw record drawId mismatch: expected ${args.drawDate}, found ${drawRecord.drawId}`);
+    }
+    
+    // Ensure the draw has a winning number set
+    if (!drawRecord.winningNumber) {
+      throw new Error(`Draw ${args.drawDate} does not have a winning number set`);
+    }
+    
+    // Ensure the winning number matches what was passed
+    if (drawRecord.winningNumber !== args.winningNumber) {
+      throw new Error(`Winning number mismatch: expected ${args.winningNumber}, draw has ${drawRecord.winningNumber}`);
+    }
+    
+    // Extract drawTime from the draw's drawingTime
+    const drawDateTime = new Date(drawRecord.drawingTime);
+    const drawTime = `${String(drawDateTime.getUTCHours()).padStart(2, '0')}:${String(drawDateTime.getUTCMinutes()).padStart(2, '0')}`;
+    
+    console.log(`Using drawTime from draw record: ${drawTime} (drawingTime: ${drawRecord.drawingTime})`);
 
     // Parse draw date and time to validate and calculate window
     const [day, month, year] = args.drawDate.split('/').map(Number);
@@ -582,8 +603,8 @@ export const processDraw = mutation({
       throw new Error("Invalid draw date or time format");
     }
     
-    // Calculate draw timestamp
-    const drawTimestamp = new Date(year, month - 1, day, hours, minutes, 0, 0).getTime();
+    // Calculate draw timestamp (UTC)
+    const drawTimestamp = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0, 0)).getTime();
     const now = Date.now();
     
     // Validate that draw time has passed (can't process future draws)
@@ -760,6 +781,22 @@ export const processDraw = mutation({
       ticketsOutsideWindow,
       message: `Processed ${activeTickets.length} tickets, ${winners.length} winners. Window: ${windowStartDate.toLocaleString()} to ${windowEndDate.toLocaleString()}`,
     };
+  },
+});
+
+/**
+ * Public wrapper for processDrawInternal - can be called from API routes
+ */
+export const processDraw = mutation({
+  args: {
+    drawDate: v.string(), // DD/MM/YYYY
+    drawTime: v.optional(v.string()), // HH:MM - optional, fetched from system config if not provided
+    winningNumber: v.number(),
+    adminSecret: v.optional(v.string()), // Optional admin secret to bypass auth
+  },
+  handler: async (ctx: any, args: any): Promise<any> => {
+    // Call the internal function
+    return await ctx.runMutation(internal.unifiedTickets.processDrawInternal, args);
   },
 });
 
