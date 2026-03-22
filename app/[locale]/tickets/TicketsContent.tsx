@@ -9,6 +9,7 @@ import PageWithSidebarAds from '@/components/layout/PageWithSidebarAds';
 import { useTicketsLogic } from './hooks/useTicketsLogic';
 import { Ticket } from '@/types/game';
 import { useState } from 'react';
+import { getStatusTranslationKey, getStatusColorClasses } from '@/lib/statusTranslations';
 
 /**
  * UNIFIED RESPONSIVE TicketsContent - FINAL CLEAN VERSION
@@ -206,10 +207,9 @@ function TicketCard({ ticket, totalWon, isExpanded, onToggle, t }: TicketCardPro
               ID: {(ticket.id || 'UNKNOWN').slice(-6).toUpperCase()}
             </span>
             <span className={`text-xs px-2 py-0.5 rounded font-semibold ${
-              ticket.status === 'WON' ? 'bg-green-500/20 text-green-400' :
-              ticket.status === 'ACTIVE' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-gray-600/20 text-gray-400'
+              getStatusColorClasses(ticket.status)
             }`}>
-              {ticket.status}
+              {t(getStatusTranslationKey(ticket.status))}
             </span>
           </div>
           <div className="font-bold text-xs text-gray-200">
@@ -240,7 +240,7 @@ function TicketCard({ ticket, totalWon, isExpanded, onToggle, t }: TicketCardPro
         </div>
         {totalWon > 0 && (
           <div className="flex justify-between font-bold text-green-400">
-            <span>Winnings:</span>
+            <span>{t('tickets.winnings')}:</span>
             <span>Ɐ {totalWon}</span>
           </div>
         )}

@@ -6,6 +6,7 @@ import { Ticket, TicketBet } from "@/types/game";
 import { getMyTickets } from "@/lib/api";
 import { formatDateDDMMYYYY } from "@/lib/dateUtils";
 import { useTranslationsFromPath } from '@/i18n/translation-context';
+import { getStatusTranslationKey, getStatusColorClasses } from '@/lib/statusTranslations';
 
 interface RecentActivityProps {
   userId?: string;
@@ -13,7 +14,7 @@ interface RecentActivityProps {
 }
 
 export const RecentActivity = ({ userId, isAuthenticated }: RecentActivityProps) => {
-  const { locale } = useTranslationsFromPath();
+  const { locale, t } = useTranslationsFromPath();
   const [recentTickets, setRecentTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -45,12 +46,7 @@ export const RecentActivity = ({ userId, isAuthenticated }: RecentActivityProps)
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'WON': return 'text-green-400 bg-green-900/20';
-      case 'CLAIMED': return 'text-blue-400 bg-blue-900/20';
-      case 'ACTIVE': return 'text-yellow-400 bg-yellow-900/20';
-      default: return 'text-gray-400 bg-gray-900/20';
-    }
+    return getStatusColorClasses(status);
   };
 
   const formatTicketNumbers = (ticket: Ticket) => {
@@ -126,7 +122,7 @@ export const RecentActivity = ({ userId, isAuthenticated }: RecentActivityProps)
                 <div className="flex-1">
                   <div className="flex items-center space-x-3 mb-2">
                     <span className={`px-2 py-1 rounded text-xs font-bold uppercase tracking-wider ${getStatusColor(ticket.status)}`}>
-                      {ticket.status}
+                      {t(getStatusTranslationKey(ticket.status))}
                     </span>
                     <span className="text-gray-400 text-sm">
                       {formatDateDDMMYYYY(ticket.created_at.split('T')[0])}
@@ -143,7 +139,7 @@ export const RecentActivity = ({ userId, isAuthenticated }: RecentActivityProps)
                   Cost: <span className="text-white font-mono">${calculateTotalCost(ticket)}</span>
                 </div>
                 <div className="text-gray-400">
-                  Winnings: <span className={`font-mono font-bold ${
+                  {t('tickets.winnings')}: <span className={`font-mono font-bold ${
                     parseFloat(calculateTotalWinnings(ticket)) > 0 ? 'text-green-400' : 'text-gray-400'
                   }`}>
                     ${calculateTotalWinnings(ticket)}
@@ -151,7 +147,7 @@ export const RecentActivity = ({ userId, isAuthenticated }: RecentActivityProps)
                 </div>
               </div>
 
-              {parseFloat(calculateTotalWinnings(ticket)) > 0 && ticket.status === 'WON' && (
+              {parseFloat(calculateTotalWinnings(ticket)) > 0 && ticket.status?.toLowerCase() === 'won' && (
                 <div className="mt-2 text-center">
                   <span className="bg-green-600 text-white px-3 py-1 rounded text-xs font-bold">
                     🎉 WINNER!

@@ -666,6 +666,7 @@ export const processDrawInternal = internalMutation({
 
     const processingTime = Date.now();
     const winners: any[] = [];
+    const nonWinners: any[] = [];
     let totalPayout = 0;
 
     // Process each ticket
@@ -699,9 +700,9 @@ export const processDrawInternal = internalMutation({
         }
       }
 
-      // Update ticket status
+      // Update ticket status based on winning/losing
       const updateData: any = {
-        status: ticketIsWinning ? "won" : "lost",
+        status: ticketIsWinning ? "won" : "no_winning", // 🏷️ Clearly mark non-winning tickets
         isWinning: ticketIsWinning,
         winningAmount: ticketWinningAmount,
         winningNumber: args.winningNumber,
@@ -757,7 +758,16 @@ export const processDrawInternal = internalMutation({
           });
 
           totalPayout += ticketWinningAmount;
+          console.log(`✅ WINNER: Ticket ${ticketData.ticketId} (${bestMatchType} match) - Payout: ${ticketWinningAmount} coins`);
         }
+      } else {
+        // Track non-winning tickets
+        nonWinners.push({
+          ticketId: ticketData.ticketId,
+          userId: ticketData.userId,
+          purchasedAt: new Date(ticketData.purchasedAt).toISOString(),
+        });
+        console.log(`❌ NO WIN: Ticket ${ticketData.ticketId} marked as no_winning`);
       }
     }
 
@@ -767,6 +777,7 @@ export const processDrawInternal = internalMutation({
     });
 
     console.log('✅ Cache invalidation scheduled');
+    console.log(`📊 Draw Processing Summary: ${winners.length} winners, ${nonWinners.length} non-winners, Total Payout: ${totalPayout} coins`);
 
     return {
       success: true,
@@ -774,7 +785,8 @@ export const processDrawInternal = internalMutation({
       drawTime: args.drawTime,
       winningNumber: args.winningNumber,
       totalTickets: activeTickets.length,
-      winningTickets: winners,
+      winners: winners,
+      nonWinners: nonWinners, // 🏷️ Track all non-winning tickets for transparency
       totalPayout,
       windowStart: windowStartDate.toISOString(),
       windowEnd: windowEndDate.toISOString(),
