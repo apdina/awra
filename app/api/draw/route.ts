@@ -3,6 +3,41 @@ import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/convex-client';
 import { logger } from '@/lib/logger';
 
+function getZonedDateTimeParts(date: Date, timeZone: string) {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric', month: 'numeric', day: 'numeric',
+    hour: 'numeric', minute: 'numeric', second: 'numeric',
+    hourCycle: 'h23', weekday: 'long'
+  });
+  const parts = formatter.formatToParts(date);
+  const getPart = (type: string) => parts.find(p => p.type === type)?.value;
+  return {
+    year: parseInt(getPart('year') || '0', 10),
+    month: parseInt(getPart('month') || '0', 10),
+    day: parseInt(getPart('day') || '0', 10),
+    hour: parseInt(getPart('hour') || '0', 10),
+    minute: parseInt(getPart('minute') || '0', 10),
+    second: parseInt(getPart('second') || '0', 10),
+    weekday: getPart('weekday') || ''
+  };
+}
+
+function createDateInTimezone(year: number, month: number, day: number, hour: number, minute: number, timeZone: string): Date {
+  const estimate = new Date(Date.UTC(year, month - 1, day, hour, minute));
+  const parts = getZonedDateTimeParts(estimate, timeZone);
+  const partsMs = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute);
+  const offsetMs = partsMs - estimate.getTime();
+  const exact = new Date(Date.UTC(year, month - 1, day, hour, minute) - offsetMs);
+  const exactParts = getZonedDateTimeParts(exact, timeZone);
+  if (exactParts.hour !== hour || exactParts.minute !== minute) {
+    const partsMs2 = Date.UTC(exactParts.year, exactParts.month - 1, exactParts.day, exactParts.hour, exactParts.minute);
+    const offsetMs2 = partsMs2 - exact.getTime();
+    return new Date(Date.UTC(year, month - 1, day, hour, minute) - offsetMs2);
+  }
+  return exact;
+}
+
 /**
  * UNIFIED DRAW API
  * 
@@ -29,10 +64,12 @@ export async function GET(request: NextRequest) {
     const isForceRefresh = url.searchParams.has('t');
     
     // Fetch current draw and latest default time
-    const [currentDraw, defaultTimeConfig] = await Promise.all([
+    const [currentDraw, defaultTimeConfig, timezoneConfig] = await Promise.all([
       convex.query(api.draws.getOrCreateCurrentDraw, {}),
-      convex.query(api.systemConfig.getConfig, { key: 'default_draw_time' })
+      convex.query(api.systemConfig.getConfig, { key: 'default_draw_time' }),
+      convex.query(api.systemConfig.getConfig, { key: 'app_timezone' })
     ]);
+    const timezone = (timezoneConfig?.value as string) || "Africa/Casablanca";
     
     if (!currentDraw) {
       return NextResponse.json({
@@ -68,8 +105,8 @@ export async function GET(request: NextRequest) {
     const [day, month, year] = currentDraw.draw_date.split('/').map(Number);
     const [hours, minutes] = drawTimeToUse.split(':').map(Number);
     
-    // Create draw time (UTC)
-    const drawTime = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0, 0));
+    // Create draw time (Timezone Aware)
+    const drawTime = createDateInTimezone(year, month, day, hours, minutes, timezone);
     const diff = drawTime.getTime() - now;
 
     // If draw has passed, trigger the draw increment to create the next draw
@@ -101,14 +138,14 @@ export async function GET(request: NextRequest) {
     // Calculate countdown for final draw
     const [finalDay, finalMonth, finalYear] = finalDraw.draw_date.split('/').map(Number);
     const [finalHours, finalMinutes] = finalDrawTime.split(':').map(Number);
-    const finalDrawDateTime = new Date(Date.UTC(finalYear, finalMonth - 1, finalDay, finalHours, finalMinutes, 0, 0));
+    const finalDrawDateTime = createDateInTimezone(finalYear, finalMonth, finalDay, finalHours, finalMinutes, timezone);
     const finalDiff = finalDrawDateTime.getTime() - now;
 
     const hrs = Math.max(0, Math.floor(finalDiff / (1000 * 60 * 60)));
     const mins = Math.max(0, Math.floor((finalDiff % (1000 * 60 * 60)) / (1000 * 60)));
     const secs = Math.max(0, Math.floor((finalDiff % (1000 * 60)) / 1000));
     
-    const dayOfWeek = finalDrawDateTime.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' });
+    const dayOfWeek = getZonedDateTimeParts(finalDrawDateTime, timezone).weekday;
 
     // Build response based on type
     let responseData: any;

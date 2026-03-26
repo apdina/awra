@@ -10,6 +10,7 @@
 import { v } from "convex/values";
 import { mutation, query, httpAction, internalMutation } from "./_generated/server";
 import { internal, api } from "./_generated/api";
+import { createDateInTimezone, formatToDateString, getZonedDateTimeParts, getAppTimezone } from "./timeHelpers";
 import { requireAuth } from "./auth";
 import { verifyToken } from "./native_auth";
 import { Id } from "./_generated/dataModel";
@@ -144,9 +145,9 @@ async function calculateDrawForPurchase(
   const activeDraw = draws.find((d: any) => d.status !== "completed");
   
   if (activeDraw) {
-    // Extract time from drawingTime using UTC (same as getOrCreateCurrentDraw)
-    const d = new Date(activeDraw.drawingTime);
-    const drawTime = `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+    const timezone = await getAppTimezone(ctx.db);
+    const p = getZonedDateTimeParts(new Date(activeDraw.drawingTime), timezone);
+    const drawTime = `${String(p.hour).padStart(2, '0')}:${String(p.minute).padStart(2, '0')}`;
     
     return {
       drawDate: activeDraw.drawId,
@@ -155,59 +156,51 @@ async function calculateDrawForPurchase(
   }
   
   // No active draw - calculate fallback (same as getOrCreateCurrentDraw)
-  const excludeSundaysConfig = await ctx.db
-    .query("systemConfig")
-    .filter((q: any) => q.eq(q.field("key"), "exclude_sundays"))
-    .first();
-  
-  const holidaysConfig = await ctx.db
-    .query("systemConfig")
-    .filter((q: any) => q.eq(q.field("key"), "holiday_exceptions"))
-    .first();
+  const excludeSundaysConfig = configs.find((c: any) => c.key === "exclude_sundays");
+  const holidaysConfig = configs.find((c: any) => c.key === "holiday_exceptions");
   
   const excludeSundays = excludeSundaysConfig?.value !== false;
   const holidays: string[] = holidaysConfig ? JSON.parse(holidaysConfig.value as string) : [];
+  const timezone = await getAppTimezone(ctx.db);
   
   // Helper function to check if a date is a holiday
   const isHoliday = (date: Date): boolean => {
-    const d = String(date.getUTCDate()).padStart(2, '0');
-    const m = String(date.getUTCMonth() + 1).padStart(2, '0');
-    const y = date.getUTCFullYear();
-    const dateStr = `${d}/${m}/${y}`;
+    const p = getZonedDateTimeParts(date, timezone);
+    const dateStr = `${String(p.day).padStart(2, '0')}/${String(p.month).padStart(2, '0')}/${p.year}`;
     return holidays.includes(dateStr);
   };
   
-  let nextDrawDate = new Date();
-  nextDrawDate.setUTCHours(0, 0, 0, 0);
-  
+  const todayParts = getZonedDateTimeParts(new Date(purchaseTimestamp), timezone);
   const [hours, minutes] = defaultDrawTime.split(':').map(Number);
-  nextDrawDate.setUTCHours(hours, minutes, 0, 0);
   
-  if (nextDrawDate.getTime() <= purchaseTimestamp) {
-    nextDrawDate.setUTCDate(nextDrawDate.getUTCDate() + 1);
+  let targetDrawTime = createDateInTimezone(todayParts.year, todayParts.month, todayParts.day, hours, minutes, timezone);
+  
+  if (targetDrawTime.getTime() <= purchaseTimestamp) {
+    targetDrawTime = createDateInTimezone(todayParts.year, todayParts.month, todayParts.day + 1, hours, minutes, timezone);
   }
   
   // Skip Sundays
-  while (excludeSundays && nextDrawDate.getUTCDay() === 0) {
-    nextDrawDate.setUTCDate(nextDrawDate.getUTCDate() + 1);
+  while (excludeSundays && getZonedDateTimeParts(targetDrawTime, timezone).weekday === "Sunday") {
+    const p = getZonedDateTimeParts(targetDrawTime, timezone);
+    targetDrawTime = createDateInTimezone(p.year, p.month, p.day + 1, hours, minutes, timezone);
   }
   
   // Skip holidays
-  while (isHoliday(nextDrawDate)) {
-    nextDrawDate.setUTCDate(nextDrawDate.getUTCDate() + 1);
+  while (isHoliday(targetDrawTime)) {
+    const p = getZonedDateTimeParts(targetDrawTime, timezone);
+    targetDrawTime = createDateInTimezone(p.year, p.month, p.day + 1, hours, minutes, timezone);
     
     // Re-check Sunday after skipping holiday
-    if (excludeSundays && nextDrawDate.getUTCDay() === 0) {
-      nextDrawDate.setUTCDate(nextDrawDate.getUTCDate() + 1);
+    if (excludeSundays && getZonedDateTimeParts(targetDrawTime, timezone).weekday === "Sunday") {
+      const p2 = getZonedDateTimeParts(targetDrawTime, timezone);
+      targetDrawTime = createDateInTimezone(p2.year, p2.month, p2.day + 1, hours, minutes, timezone);
     }
   }
   
-  const day = String(nextDrawDate.getUTCDate()).padStart(2, '0');
-  const month = String(nextDrawDate.getUTCMonth() + 1).padStart(2, '0');
-  const year = nextDrawDate.getUTCFullYear();
+  const finalParts = getZonedDateTimeParts(targetDrawTime, timezone);
   
   return {
-    drawDate: `${day}/${month}/${year}`,
+    drawDate: `${String(finalParts.day).padStart(2, '0')}/${String(finalParts.month).padStart(2, '0')}/${finalParts.year}`,
     drawTime: defaultDrawTime
   };
 }
@@ -603,8 +596,10 @@ export const processDrawInternal = internalMutation({
       throw new Error("Invalid draw date or time format");
     }
     
-    // Calculate draw timestamp (UTC)
-    const drawTimestamp = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0, 0)).getTime();
+    const timezone = await getAppTimezone(ctx.db);
+    
+    // Calculate draw timestamp (Timezone Aware)
+    const drawTimestamp = createDateInTimezone(year, month, day, hours, minutes, timezone).getTime();
     const now = Date.now();
     
     // Validate that draw time has passed (can't process future draws)

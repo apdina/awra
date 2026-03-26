@@ -7,6 +7,7 @@
 
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { createDateInTimezone, formatToDateString, getZonedDateTimeParts, getAppTimezone as getAppTimezoneHelper } from "./timeHelpers";
 
 /**
  * Get the configured app timezone
@@ -190,48 +191,24 @@ export const hasDrawTimePassed = query({
     drawTime: v.string(), // HH:MM
   },
   handler: async (ctx, args) => {
-    // Get timezone from systemConfig
-    const timezoneConfig = await ctx.db
-      .query("systemConfig")
-      .filter((q: any) => q.eq(q.field("key"), "app_timezone"))
-      .first();
-    
-    const timezone = (timezoneConfig?.value as string) || "UTC";
-    const now = new Date();
+    const timezone = await getAppTimezoneHelper(ctx.db);
+    const now = Date.now();
     
     // Parse draw date and time
     const [day, month, year] = args.drawDate.split('/').map(Number);
     const [hours, minutes] = args.drawTime.split(':').map(Number);
     
-    // Create ISO string
-    const isoString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`;
-    const drawDateTime = new Date(isoString);
+    // Create exact draw time in target timezone
+    const exactDrawTime = createDateInTimezone(year, month, day, hours, minutes, timezone);
+    const hasPassed = now > exactDrawTime.getTime();
     
-    // Get current time in app timezone
-    const currentFormatter = new Intl.DateTimeFormat('en-GB', {
-      timeZone: timezone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
-    });
-    
-    const currentParts = currentFormatter.formatToParts(now);
-    const currentYear = parseInt(currentParts.find(p => p.type === 'year')?.value || '0');
-    const currentMonth = parseInt(currentParts.find(p => p.type === 'month')?.value || '0');
-    const currentDay = parseInt(currentParts.find(p => p.type === 'day')?.value || '0');
-    const currentHours = parseInt(currentParts.find(p => p.type === 'hour')?.value || '0');
-    const currentMinutes = parseInt(currentParts.find(p => p.type === 'minute')?.value || '0');
-    
-    const currentInTz = new Date(currentYear, currentMonth - 1, currentDay, currentHours, currentMinutes);
-    
+    // Formatted current time string just for debug return value
+    const p = getZonedDateTimeParts(new Date(now), timezone);
+
     return {
-      hasPassed: currentInTz.getTime() > drawDateTime.getTime(),
-      drawDateTime: isoString,
-      currentTimeInTz: `${currentDay}/${currentMonth}/${currentYear} ${currentHours}:${currentMinutes}`,
+      hasPassed,
+      drawDateTime: exactDrawTime.toISOString(),
+      currentTimeInTz: `${String(p.day).padStart(2, '0')}/${String(p.month).padStart(2, '0')}/${p.year} ${String(p.hour).padStart(2, '0')}:${String(p.minute).padStart(2, '0')}`,
       timezone: timezone
     };
   }
