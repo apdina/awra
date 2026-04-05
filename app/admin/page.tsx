@@ -98,7 +98,6 @@ function UnifiedAdminDashboard() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Admin-Secret-Key': ADMIN_SECRET,
           'X-CSRF-Token': csrfToken,
         },
         credentials: 'include',
@@ -112,6 +111,54 @@ function UnifiedAdminDashboard() {
 
       if (response.ok) {
         setMessage("✅ Winning Number Updated!");
+        setTimeout(() => {
+          setMessage("");
+          setDate("");
+          setNumber("");
+        }, 2000);
+      } else {
+        setMessage(`❌ Error: ${res.error}`);
+      }
+    } catch (error) {
+      setMessage("❌ Failed to connect to server.");
+    }
+
+    setLoading(false);
+  };
+
+  const handleClearResult = async () => {
+    if (!date) {
+      setMessage("Please fill in the draw date to clear the winning number.");
+      return;
+    }
+
+    setLoading(true);
+    setMessage("");
+
+    try {
+      const csrfResponse = await fetch('/api/csrf-token', {
+        credentials: 'include',
+      });
+      const csrfData = await csrfResponse.json();
+      const csrfToken = csrfData.token;
+
+      const response = await fetch('/api/admin/set-result', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken,
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          draw_date: date,
+          clear_winning_number: true
+        })
+      });
+
+      const res = await response.json();
+
+      if (response.ok) {
+        setMessage("✅ Winning number cleared successfully!");
         setTimeout(() => {
           setMessage("");
           setDate("");
@@ -506,15 +553,27 @@ function UnifiedAdminDashboard() {
                 </div>
               </div>
 
-              <button 
-                onClick={handleSetResult}
-                disabled={loading}
-                className={`w-full p-4 rounded font-bold text-xl transition-colors ${
-                  loading ? 'bg-gray-600 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
-                }`}
-              >
-                {loading ? "Updating..." : "SET WINNING NUMBER"}
-              </button>
+              <div className="grid md:grid-cols-2 gap-4">
+                <button 
+                  onClick={handleSetResult}
+                  disabled={loading}
+                  className={`w-full p-4 rounded font-bold text-xl transition-colors ${
+                    loading ? 'bg-gray-600 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
+                  }`}
+                >
+                  {loading ? "Updating..." : "SET WINNING NUMBER"}
+                </button>
+
+                <button 
+                  onClick={handleClearResult}
+                  disabled={loading}
+                  className={`w-full p-4 rounded font-bold text-xl transition-colors ${
+                    loading ? 'bg-gray-600 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'
+                  }`}
+                >
+                  {loading ? "Processing..." : "CLEAR WINNING NUMBER"}
+                </button>
+              </div>
               
               {message && (
                 <div className="text-center p-3 rounded bg-gray-900">

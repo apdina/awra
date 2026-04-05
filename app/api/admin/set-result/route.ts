@@ -17,6 +17,27 @@ async function getAdminSecret(): Promise<string> {
   }
 }
 
+async function getCurrentAdmin(request: NextRequest) {
+  const sessionToken = request.cookies.get('admin_session')?.value;
+  if (!sessionToken) {
+    return null;
+  }
+
+  const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+  try {
+    const result = await convex.query(api.adminAuth.verifyAdminSession, {
+      sessionToken,
+    });
+    if (!result.valid) {
+      return null;
+    }
+    return { authenticated: true };
+  } catch (error) {
+    logger.error('Failed to verify admin session:', error);
+    return null;
+  }
+}
+
 export const POST = csrfProtect(async (request: NextRequest) => {
   try {
     logger.log('API route called');
@@ -24,9 +45,10 @@ export const POST = csrfProtect(async (request: NextRequest) => {
     // Get admin secret from Convex
     const adminSecret = await getAdminSecret();
     
-    // Verify admin secret
+    // Verify admin session or admin secret
+    const authUser = await getCurrentAdmin(request);
     const providedSecret = request.headers.get('X-Admin-Secret-Key');
-    if (providedSecret !== adminSecret) {
+    if (!authUser && providedSecret !== adminSecret) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -36,21 +58,38 @@ export const POST = csrfProtect(async (request: NextRequest) => {
     // Parse request body
     const body = await request.json();
     logger.log('Request body:', body);
-    const { draw_date, winning_number } = body;
+    const { draw_date, winning_number, clear_winning_number } = body;
+    const shouldClear = clear_winning_number === true;
 
-    if (!draw_date || !winning_number) {
+    if (!draw_date) {
       return NextResponse.json(
-        { error: 'Missing required fields: draw_date, winning_number' },
+        { error: 'Missing required field: draw_date' },
         { status: 400 }
       );
     }
 
-    // Validate winning number range
-    if (winning_number < 1 || winning_number > 200) {
+    if (shouldClear && winning_number != null) {
       return NextResponse.json(
-        { error: 'Winning number must be between 1 and 200' },
+        { error: 'Cannot specify winning_number when clearing the winning number' },
         { status: 400 }
       );
+    }
+
+    if (!shouldClear) {
+      if (winning_number == null) {
+        return NextResponse.json(
+          { error: 'Missing required fields: draw_date, winning_number' },
+          { status: 400 }
+        );
+      }
+
+      // Validate winning number range
+      if (winning_number < 1 || winning_number > 200) {
+        return NextResponse.json(
+          { error: 'Winning number must be between 1 and 200' },
+          { status: 400 }
+        );
+      }
     }
 
     logger.log('Creating Convex client');
@@ -66,6 +105,42 @@ export const POST = csrfProtect(async (request: NextRequest) => {
 
     // Create Convex HTTP client
     const convex = new ConvexHttpClient(CONVEX_URL);
+
+    if (shouldClear) {
+      // Clear only the winning number from the specified draw
+      const clearResult = await convex.mutation(api.draws.clearWinningNumber, {
+        drawId: draw_date,
+        adminSecret: adminSecret
+      });
+
+      logger.log('✅ Old system winning number cleared successfully:', clearResult);
+
+      // Invalidate all caches via dedicated endpoint
+      try {
+        const invalidateResponse = await fetch(`${process.env.NEXT_PUBLIC_VERCEL_URL || 'http://localhost:3000'}/api/invalidate-cache`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Admin-Secret-Key': adminSecret
+          },
+          credentials: 'include'
+        });
+        if (invalidateResponse.ok) {
+          logger.log('✅ All caches invalidated via /api/invalidate-cache');
+        } else {
+          logger.error('❌ Failed to invalidate caches:', await invalidateResponse.text());
+        }
+      } catch (cacheError) {
+        logger.error('❌ Failed to invalidate caches:', cacheError);
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: 'Winning number cleared for draw',
+        draw_id: draw_date,
+        old_system: clearResult
+      });
+    }
 
     // 1. First, set winning number in the old draws system (for backward compatibility)
     const oldSystemResult = await convex.mutation(api.draws.setWinningNumber, {

@@ -480,6 +480,51 @@ export const setWinningNumber = mutation({
   },
 });
 
+export const clearWinningNumber = mutation({
+  args: {
+    drawId: v.string(),
+    adminSecret: v.string(),
+  },
+  handler: async (ctx: any, args: any) => {
+    const config = await ctx.db
+      .query("systemConfig")
+      .filter((q: any) => q.eq(q.field("key"), "adminSecret"))
+      .first();
+
+    const ADMIN_SECRET = config?.value || "";
+    if (args.adminSecret !== ADMIN_SECRET) {
+      throw new Error("Invalid admin secret");
+    }
+
+    const draw = await ctx.db
+      .query("dailyDraws")
+      .withIndex("by_drawId", (q: any) => q.eq("drawId", args.drawId))
+      .first();
+
+    if (!draw) {
+      throw new Error(`Draw ${args.drawId} not found`);
+    }
+
+    await ctx.db.patch(draw._id, {
+      winningNumber: undefined,
+      updatedAt: Date.now(),
+    });
+
+    try {
+      await ctx.scheduler.runAfter(0, internal.draws.invalidateWinningNumbersCacheInternal);
+      console.log('✅ Winning numbers cache invalidation scheduled for cleared draw');
+    } catch (error: any) {
+      console.error('⚠️ Cache invalidation failed after clearing winning number:', error?.message || 'Unknown error');
+    }
+
+    return {
+      success: true,
+      drawId: args.drawId,
+      message: 'Winning number removed from draw',
+    };
+  },
+});
+
 /**
  * Get or create current draw (for API compatibility)
  * 
