@@ -309,7 +309,7 @@ export const setWinningNumber = mutation({
     // Verify admin secret from database
     const config = await ctx.db
       .query("systemConfig")
-      .filter((q: any) => q.eq(q.field("key"), "adminSecret"))
+      .filter((q: any) => q.eq(q.field("key"), "ADMIN_SECRET"))
       .first();
     
     const ADMIN_SECRET = config?.value || "";
@@ -488,7 +488,7 @@ export const clearWinningNumber = mutation({
   handler: async (ctx: any, args: any) => {
     const config = await ctx.db
       .query("systemConfig")
-      .filter((q: any) => q.eq(q.field("key"), "adminSecret"))
+      .filter((q: any) => q.eq(q.field("key"), "ADMIN_SECRET"))
       .first();
 
     const ADMIN_SECRET = config?.value || "";
@@ -673,7 +673,7 @@ export const setDrawTime = mutation({
     // Verify admin secret from database
     const config = await ctx.db
       .query("systemConfig")
-      .withIndex("by_key", (q: any) => q.eq("key", "adminSecret"))
+      .withIndex("by_key", (q: any) => q.eq("key", "ADMIN_SECRET"))
       .first();
     
     const ADMIN_SECRET = config?.value || "";
@@ -1122,7 +1122,7 @@ async function checkAndIncrementDrawHelper(ctx: any, adminSecret: string) {
   // Verify admin secret from database
   const config = await ctx.db
     .query("systemConfig")
-    .filter((q: any) => q.eq(q.field("key"), "adminSecret"))
+    .filter((q: any) => q.eq(q.field("key"), "ADMIN_SECRET"))
     .first();
   
   const ADMIN_SECRET = config?.value || "";

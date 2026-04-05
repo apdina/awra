@@ -42,7 +42,7 @@ export const getAdminSecret = query({
   handler: async (ctx) => {
     const config = await ctx.db
       .query("systemConfig")
-      .withIndex("by_key", (q: any) => q.eq("key", "adminSecret"))
+      .withIndex("by_key", (q: any) => q.eq("key", "ADMIN_SECRET"))
       .first();
     
     return config;

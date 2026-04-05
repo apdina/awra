@@ -8,7 +8,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
-const ADMIN_SECRET_KEY = "adminSecret";
+const ADMIN_SECRET_KEY = "ADMIN_SECRET";
 const HOLIDAYS_KEY = "holiday_exceptions";
 
 /**

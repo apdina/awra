@@ -5,8 +5,12 @@
  * Run this script once to securely store your admin secrets in Convex
  */
 
+import { config } from 'dotenv';
 import { ConvexHttpClient } from 'convex/browser';
 import { api } from '../convex/_generated/api';
+
+// Load environment variables from .env file
+config();
 
 async function setupAdminSecrets() {
   console.log('🔧 Setting up admin secrets in Convex...\n');
