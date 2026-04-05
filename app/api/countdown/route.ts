@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '@/convex/_generated/api';
 
 /**
  * DEPRECATED: Use /api/draw?type=countdown instead
@@ -53,8 +55,7 @@ export async function POST(request: NextRequest) {
     const adminSecret = authHeader.substring(7);
 
     // Verify admin secret
-    const convex = require('@/lib/convex-client').getConvexClient();
-    const api = require('@/convex/_generated/api').api;
+    const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
     const config = await convex.query(api.systemConfig.getAdminSecret);
     if (config?.value !== adminSecret) {
       return NextResponse.json({ error: 'Invalid admin secret' }, { status: 403 });

@@ -34,6 +34,11 @@ export const validateEnvironmentVariables = () => {
     'NEXT_PUBLIC_CONVEX_URL',
   ];
   
+  // Add CONVEX_DEPLOY_KEY for production deployments
+  if (process.env.NODE_ENV === 'production') {
+    requiredConvexVars.push('CONVEX_DEPLOY_KEY');
+  }
+  
   requiredConvexVars.forEach(varName => {
     if (!process.env[varName]) {
       errors.push(`Missing required Convex environment variable: ${varName}`);

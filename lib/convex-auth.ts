@@ -18,14 +18,9 @@ export async function getServerConvexClient(request?: NextRequest): Promise<Conv
   const convexUrl = getConvexUrl();
   const client = new ConvexHttpClient(convexUrl);
   
-  // If we have a request, we could potentially extract auth tokens from cookies
-  // and configure the client with authentication context here
+  // If we have a request, this helper can later be extended to add request-scoped auth
   if (request) {
-    // TODO: Extract auth token from cookies and configure client if needed
-    // const token = request.cookies.get('auth_token')?.value;
-    // if (token) {
-    //   // Configure client with auth context
-    // }
+    // No authentication token extraction is required for current server-side Convex client usage
   }
   
   return client;

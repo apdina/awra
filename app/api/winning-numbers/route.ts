@@ -148,9 +148,8 @@ export async function GET(request: NextRequest) {
 // POST /api/winning-numbers - Add new winning number
 export async function POST(request: NextRequest) {
   try {
-    // TODO: Implement Convex write operation
     return NextResponse.json(
-      { error: 'Write operations not yet implemented for Convex' },
+      { error: 'Write operations are intentionally disabled in this route' },
       { status: 501 }
     );
   } catch (error) {
@@ -165,9 +164,8 @@ export async function POST(request: NextRequest) {
 // PUT /api/winning-numbers - Update existing winning number
 export async function PUT(request: NextRequest) {
   try {
-    // TODO: Implement Convex write operation
     return NextResponse.json(
-      { error: 'Write operations not yet implemented for Convex' },
+      { error: 'Write operations are intentionally disabled in this route' },
       { status: 501 }
     );
   } catch (error) {
@@ -182,9 +180,8 @@ export async function PUT(request: NextRequest) {
 // DELETE /api/winning-numbers - Delete winning number
 export async function DELETE(request: NextRequest) {
   try {
-    // TODO: Implement Convex write operation
     return NextResponse.json(
-      { error: 'Write operations not yet implemented for Convex' },
+      { error: 'Write operations are intentionally disabled in this route' },
       { status: 501 }
     );
   } catch (error) {

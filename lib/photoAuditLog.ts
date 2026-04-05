@@ -4,6 +4,8 @@
  */
 
 import { logger } from '@/lib/logger';
+import { getConvexClient } from '@/lib/convex-client';
+import { api } from '@/convex/_generated/api';
 
 export interface PhotoAuditEvent {
   eventType: 'PHOTO_UPLOADED' | 'PHOTO_DELETED' | 'PHOTO_UPLOAD_RATE_LIMIT_EXCEEDED' | 'PHOTO_SECURITY_VALIDATION_FAILED';
@@ -54,25 +56,24 @@ export async function auditLog(event: PhotoAuditEvent): Promise<void> {
       });
     }
 
-    // TODO: In production, send to proper audit logging system
-    // - Convex auditLogs table
-    // - External logging service (e.g., Datadog, Splunk)
-    // - SIEM system
-    
-    // Example for Convex:
-    // const convexClient = getConvexClient();
-    // await convexClient.mutation(api.auditLog.create, {
-    //   eventType: event.eventType,
-    //   status: event.status,
-    //   message: event.message,
-    //   severity: event.severity,
-    //   userId: event.userId,
-    //   email: event.email,
-    //   ipAddress: event.ipAddress,
-    //   userAgent: event.userAgent,
-    //   details: event.details,
-    //   timestamp: Date.now(),
-    // });
+    // Send audit event to Convex auditLogs table
+    try {
+      const convexClient = getConvexClient();
+      const convexStatus = event.status === 'failed' ? 'failure' : event.status;
+      await convexClient.mutation(api.auditLog.logEvent, {
+        eventType: event.eventType,
+        status: convexStatus,
+        message: event.message,
+        severity: event.severity,
+        userId: event.userId,
+        email: event.email,
+        ipAddress: event.ipAddress,
+        userAgent: event.userAgent,
+        details: event.details,
+      });
+    } catch (auditError) {
+      logger.error('Failed to log audit event to Convex', { error: auditError, event });
+    }
 
   } catch (error) {
     logger.error('Failed to log audit event:', error);
