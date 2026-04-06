@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/convex-client';
 import { logger } from '@/lib/logger';
+import { getCache, setCache } from '@/lib/redis-cache';
 
 function getZonedDateTimeParts(date: Date, timeZone: string) {
   const formatter = new Intl.DateTimeFormat('en-US', {
@@ -63,12 +64,30 @@ export async function GET(request: NextRequest) {
     const type = url.searchParams.get('type') || 'current';
     const isForceRefresh = url.searchParams.has('t');
     
-    // Fetch current draw and latest default time
-    const [currentDraw, defaultTimeConfig, timezoneConfig] = await Promise.all([
-      convex.query(api.draws.getOrCreateCurrentDraw, {}),
-      convex.query(api.systemConfig.getConfig, { key: 'default_draw_time' }),
-      convex.query(api.systemConfig.getConfig, { key: 'app_timezone' })
-    ]);
+    // Try to reuse Redis-backed draw state cache to reduce backend load
+    const cacheKey = 'draw_api_state';
+    let cachedState = null;
+    if (!isForceRefresh) {
+      cachedState = await getCache<any>(cacheKey);
+    }
+
+    let currentDraw;
+    let defaultTimeConfig;
+    let timezoneConfig;
+
+    if (cachedState) {
+      currentDraw = cachedState.currentDraw;
+      defaultTimeConfig = cachedState.defaultTimeConfig;
+      timezoneConfig = cachedState.timezoneConfig;
+    } else {
+      [currentDraw, defaultTimeConfig, timezoneConfig] = await Promise.all([
+        convex.query(api.draws.getOrCreateCurrentDraw, {}),
+        convex.query(api.systemConfig.getConfig, { key: 'default_draw_time' }),
+        convex.query(api.systemConfig.getConfig, { key: 'app_timezone' })
+      ]);
+      await setCache(cacheKey, { currentDraw, defaultTimeConfig, timezoneConfig }, 10);
+    }
+
     const timezone = (timezoneConfig?.value as string) || "Africa/Casablanca";
     
     if (!currentDraw) {
@@ -129,6 +148,9 @@ export async function GET(request: NextRequest) {
           drawWasIncremented = true;
           finalDraw = updatedDraw;
           logger.log('✅ New draw detected:', updatedDraw.draw_date);
+
+          // Update the cached state after the draw increments
+          await setCache(cacheKey, { currentDraw: updatedDraw, defaultTimeConfig, timezoneConfig }, 10);
         }
       } catch (error) {
         logger.error('Error triggering draw increment:', error);
