@@ -28,23 +28,21 @@ function SetDrawTimeContent() {
 
     setLoading(true);
     
-    // Call the admin API route
-    const API_URL = `/api/admin/set-draw-time`;
-    const ADMIN_SECRET = process.env.NEXT_PUBLIC_ADMIN_SECRET || '';
-
-    if (!ADMIN_SECRET) {
-      setMessage("❌ Admin secret not configured");
-      setLoading(false);
-      return;
-    }
-
     try {
-      const response = await fetch(API_URL, {
+      // Get CSRF token
+      const csrfResponse = await fetch('/api/csrf-token', {
+        credentials: 'include',
+      });
+      const csrfData = await csrfResponse.json();
+      const csrfToken = csrfData.token;
+
+      const response = await fetch('/api/admin/set-draw-time', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Admin-Secret-Key': ADMIN_SECRET
+          'X-CSRF-Token': csrfToken,
         },
+        credentials: 'include',
         body: JSON.stringify({
           draw_date: date,
           draw_time: time

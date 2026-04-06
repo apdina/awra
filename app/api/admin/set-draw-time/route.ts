@@ -10,11 +10,42 @@ export const POST = csrfProtect(async (request: NextRequest) => {
   try {
     logger.log('Set draw time API route called');
     
-    // Verify admin secret
-    const adminSecret = request.headers.get('X-Admin-Secret-Key');
-    if (adminSecret !== ADMIN_SECRET) {
+    // Verify admin session from HTTP-only cookie
+    const sessionToken = request.cookies.get('admin_session')?.value;
+    if (!sessionToken) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Unauthorized - No admin session' },
+        { status: 401 }
+      );
+    }
+
+    // Create Convex client to verify session
+    const CONVEX_URL = process.env.NEXT_PUBLIC_CONVEX_URL;
+    if (!CONVEX_URL) {
+      return NextResponse.json(
+        { error: 'Convex URL not configured' },
+        { status: 500 }
+      );
+    }
+    
+    const convexClient = new ConvexHttpClient(CONVEX_URL);
+    
+    try {
+      // Verify admin session
+      const sessionResult = await convexClient.query(api.adminAuth.verifyAdminSession, {
+        sessionToken,
+      });
+
+      if (!sessionResult.valid) {
+        return NextResponse.json(
+          { error: 'Unauthorized - Invalid admin session' },
+          { status: 401 }
+        );
+      }
+    } catch (sessionError: any) {
+      logger.error('Session verification error:', sessionError);
+      return NextResponse.json(
+        { error: 'Unauthorized - Session verification failed' },
         { status: 401 }
       );
     }
@@ -57,8 +88,7 @@ export const POST = csrfProtect(async (request: NextRequest) => {
     // Call the setDrawTime mutation
     const result = await convex.mutation(api.draws.setDrawTime, {
       drawDate: draw_date,
-      drawTime: draw_time,
-      adminSecret: ADMIN_SECRET
+      drawTime: draw_time
     });
 
     logger.log('✅ Draw time set successfully:', result);

@@ -1,22 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getConvexClient } from '@/lib/convex-client';
 import { api } from '@/convex/_generated/api';
+import { csrfProtect } from '@/lib/csrf';
+
+async function getCurrentAdmin(request: NextRequest) {
+  const sessionToken = request.cookies.get('admin_session')?.value;
+  if (!sessionToken) {
+    return null;
+  }
+
+  const convex = getConvexClient();
+  try {
+    const result = await convex.query(api.adminAuth.verifyAdminSession, {
+      sessionToken,
+    });
+    if (!result.valid) {
+      return null;
+    }
+    return { authenticated: true };
+  } catch (error) {
+    console.error('Failed to verify admin session:', error);
+    return null;
+  }
+}
 
 export async function GET(request: NextRequest) {
   try {
-    // Get admin secret from Authorization header
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Missing or invalid authorization header' }, { status: 401 });
-    }
+    // Check session authentication first
+    const authUser = await getCurrentAdmin(request);
+    
+    // If not authenticated via session, check Bearer token
+    if (!authUser) {
+      const authHeader = request.headers.get('authorization');
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return NextResponse.json({ error: 'Missing or invalid authorization' }, { status: 401 });
+      }
 
-    const adminSecret = authHeader.substring(7);
+      const adminSecret = authHeader.substring(7);
 
-    // Verify admin secret
-    const convex = getConvexClient();
-    const config = await convex.query(api.systemConfig.getAdminSecret);
-    if (config?.value !== adminSecret) {
-      return NextResponse.json({ error: 'Invalid admin secret' }, { status: 403 });
+      // Verify admin secret
+      const convex = getConvexClient();
+      const config = await convex.query(api.systemConfig.getAdminSecret);
+      if (config?.value !== adminSecret) {
+        return NextResponse.json({ error: 'Invalid admin secret' }, { status: 403 });
+      }
     }
 
     // Get draw configuration
@@ -50,15 +77,20 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
+export const POST = csrfProtect(async (request: NextRequest) => {
   try {
-    // Get admin secret from Authorization header
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Missing or invalid authorization header' }, { status: 401 });
+    // Check session authentication first
+    const authUser = await getCurrentAdmin(request);
+    
+    // If not authenticated via session, check Bearer token
+    let adminSecret = '';
+    if (!authUser) {
+      const authHeader = request.headers.get('authorization');
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return NextResponse.json({ error: 'Missing or invalid authorization' }, { status: 401 });
+      }
+      adminSecret = authHeader.substring(7);
     }
-
-    const adminSecret = authHeader.substring(7);
 
     // Get body
     const body = await request.json();
@@ -73,8 +105,7 @@ export async function POST(request: NextRequest) {
     const convex = getConvexClient();
     const result = await convex.mutation(api.systemConfig.updateDrawConfig, {
       defaultDrawTime,
-      excludeSundays,
-      adminSecret
+      excludeSundays
     });
 
     if (!result.success) {

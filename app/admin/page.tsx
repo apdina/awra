@@ -202,7 +202,6 @@ function UnifiedAdminDashboard() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Admin-Secret-Key': ADMIN_SECRET,
           'X-CSRF-Token': csrfToken,
         },
         credentials: 'include',
@@ -277,7 +276,6 @@ function UnifiedAdminDashboard() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Admin-Secret-Key': ADMIN_SECRET,
           'X-CSRF-Token': csrfToken,
         },
         credentials: 'include',

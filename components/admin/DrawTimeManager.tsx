@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Clock, Settings, Save, RefreshCw, Calendar } from "lucide-react";
 
 interface DrawTimeManagerProps {
-  adminSecret: string;
+  // adminSecret no longer needed - uses session authentication
 }
 
 interface DrawConfig {
@@ -15,7 +15,7 @@ interface DrawConfig {
   currentDrawStatus?: string;
 }
 
-export default function DrawTimeManager({ adminSecret }: DrawTimeManagerProps) {
+export default function DrawTimeManager({}: DrawTimeManagerProps) {
   const [config, setConfig] = useState<DrawConfig>({
     defaultDrawTime: "21:40",
     excludeSundays: true
@@ -28,10 +28,19 @@ export default function DrawTimeManager({ adminSecret }: DrawTimeManagerProps) {
   const fetchConfig = async () => {
     try {
       setIsLoading(true);
+      
+      // Get CSRF token
+      const csrfResponse = await fetch('/api/csrf-token', {
+        credentials: 'include',
+      });
+      const csrfData = await csrfResponse.json();
+      const csrfToken = csrfData.token;
+
       const response = await fetch('/api/admin/draw-config', {
         headers: {
-          'Authorization': `Bearer ${adminSecret}`
-        }
+          'X-CSRF-Token': csrfToken,
+        },
+        credentials: 'include'
       });
       
       if (response.ok) {
@@ -60,12 +69,20 @@ export default function DrawTimeManager({ adminSecret }: DrawTimeManagerProps) {
       setIsSaving(true);
       setMessage(null);
       
+      // Get CSRF token
+      const csrfResponse = await fetch('/api/csrf-token', {
+        credentials: 'include',
+      });
+      const csrfData = await csrfResponse.json();
+      const csrfToken = csrfData.token;
+      
       const response = await fetch('/api/admin/draw-config', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${adminSecret}`
+          'X-CSRF-Token': csrfToken,
         },
+        credentials: 'include',
         body: JSON.stringify({
           defaultDrawTime: config.defaultDrawTime,
           excludeSundays: config.excludeSundays

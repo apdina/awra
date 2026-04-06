@@ -56,17 +56,19 @@ export const updateDrawConfig = mutation({
   args: {
     defaultDrawTime: v.string(),
     excludeSundays: v.boolean(),
-    adminSecret: v.string(),
+    adminSecret: v.optional(v.string()), // Optional for session-based auth
   },
   handler: async (ctx, args) => {
-    // Verify admin secret
-    const adminConfig = await ctx.db
-      .query("systemConfig")
-      .withIndex("by_key", (q: any) => q.eq("key", "adminSecret"))
-      .first();
-    
-    if (!adminConfig || adminConfig.value !== args.adminSecret) {
-      return { success: false, error: "Invalid admin secret" };
+    // Only verify admin secret if provided (for backward compatibility)
+    if (args.adminSecret) {
+      const adminConfig = await ctx.db
+        .query("systemConfig")
+        .withIndex("by_key", (q: any) => q.eq("key", "adminSecret"))
+        .first();
+      
+      if (!adminConfig || adminConfig.value !== args.adminSecret) {
+        return { success: false, error: "Invalid admin secret" };
+      }
     }
 
     try {

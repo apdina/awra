@@ -667,18 +667,20 @@ export const setDrawTime = mutation({
   args: {
     drawDate: v.string(), // DD/MM/YYYY format
     drawTime: v.string(), // HH:MM format
-    adminSecret: v.string(),
+    adminSecret: v.optional(v.string()), // Optional for session-based auth
   },
   handler: async (ctx, args) => {
-    // Verify admin secret from database
-    const config = await ctx.db
-      .query("systemConfig")
-      .withIndex("by_key", (q: any) => q.eq("key", "ADMIN_SECRET"))
-      .first();
-    
-    const ADMIN_SECRET = config?.value || "";
-    if (args.adminSecret !== ADMIN_SECRET) {
-      throw new Error("Invalid admin secret");
+    // Only verify admin secret if provided (for backward compatibility)
+    if (args.adminSecret) {
+      const config = await ctx.db
+        .query("systemConfig")
+        .withIndex("by_key", (q: any) => q.eq("key", "ADMIN_SECRET"))
+        .first();
+      
+      const ADMIN_SECRET = config?.value || "";
+      if (args.adminSecret !== ADMIN_SECRET) {
+        throw new Error("Invalid admin secret");
+      }
     }
 
     // Parse date and time (UTC)
