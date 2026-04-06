@@ -110,12 +110,20 @@ export default function DrawTimeManager({}: DrawTimeManagerProps) {
       setIsSaving(true);
       setMessage(null);
       
+      // Get CSRF token
+      const csrfResponse = await fetch('/api/csrf-token', {
+        credentials: 'include',
+      });
+      const csrfData = await csrfResponse.json();
+      const csrfToken = csrfData.token;
+      
       const response = await fetch('/api/admin/create-next-draw', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${adminSecret}`
-        }
+          'X-CSRF-Token': csrfToken,
+        },
+        credentials: 'include'
       });
       
       if (response.ok) {
@@ -139,7 +147,7 @@ export default function DrawTimeManager({}: DrawTimeManagerProps) {
 
   useEffect(() => {
     fetchConfig();
-  }, [adminSecret]);
+  }, []);
 
   if (isLoading) {
     return (

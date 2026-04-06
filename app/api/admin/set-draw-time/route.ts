@@ -73,15 +73,6 @@ export const POST = csrfProtect(async (request: NextRequest) => {
 
     logger.log('Creating Convex client');
 
-    // Get Convex URL
-    const CONVEX_URL = process.env.NEXT_PUBLIC_CONVEX_URL;
-    if (!CONVEX_URL) {
-      return NextResponse.json(
-        { error: 'Convex URL not configured' },
-        { status: 500 }
-      );
-    }
-
     // Create Convex HTTP client
     const convex = new ConvexHttpClient(CONVEX_URL);
 

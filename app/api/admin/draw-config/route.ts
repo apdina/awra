@@ -47,6 +47,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get draw configuration
+    const convex = getConvexClient();
     const [defaultTimeConfig, excludeSundaysConfig, currentDraw] = await Promise.all([
       convex.query(api.systemConfig.getByKey, { key: 'default_draw_time' }),
       convex.query(api.systemConfig.getByKey, { key: 'exclude_sundays' }),
@@ -123,4 +124,4 @@ export const POST = csrfProtect(async (request: NextRequest) => {
     console.error('Error updating draw config:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-}
+});
