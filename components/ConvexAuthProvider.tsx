@@ -121,7 +121,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           'Content-Type': 'application/json',
         },
         credentials: 'include', // Important: include cookies
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
       });
       
       logger.log('📡 Login response status:', response.status);
@@ -177,20 +177,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setIsLoading(true);
       
       logger.log('📝 Attempting registration via API');
+      const normalizedEmail = email.trim().toLowerCase();
+      const normalizedDisplayName = displayName.trim();
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({ email, password, username: displayName }),
+        body: JSON.stringify({ email: normalizedEmail, password, username: normalizedDisplayName }),
       });
       
       const result = await response.json();
       
-      if (response.ok && result.user) {
+      if (response.ok && result.success) {
         // Auto-login after successful registration
-        const loginResult = await login(email, password);
+        const loginResult = await login(normalizedEmail, password);
         if (loginResult.success) {
           logger.log('✅ Registration successful, auto-logged in');
           // Refresh after auto-login

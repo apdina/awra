@@ -38,6 +38,9 @@ export async function POST(request: NextRequest): Promise<NextResponse<AuthRespo
     const validatedData = loginSchema.parse(body);
     logDebug('Input validation passed');
     
+    const email = validatedData.email.trim().toLowerCase();
+    const password = validatedData.password;
+    
     // Get or generate device ID
     const deviceId = request.cookies.get('device_id')?.value || crypto.randomUUID();
     
@@ -51,8 +54,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<AuthRespo
       // Authenticate with Convex native auth
       logDebug('Authenticating with Convex native auth');
       const result = await convexClient.mutation(api.native_auth.loginWithEmail, {
-        email: validatedData.email,
-        password: validatedData.password,
+        email,
+        password,
         deviceId,
         rememberMe,
       });

@@ -45,7 +45,9 @@ export async function POST(request: Request) {
     
     // Validate input
     const validatedData = registerSchema.parse(body);
-    const { email, password, username } = validatedData;
+    const email = validatedData.email.trim().toLowerCase();
+    const password = validatedData.password;
+    const username = validatedData.username.trim();
 
     // Create Convex client for registration
     const convexClient = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
@@ -63,13 +65,14 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Registration failed" }, { status: 400 });
       }
 
-      logAuth('Convex registration successful');
+      logAuth('Convex registration successful', result.userId);
       
-      // Return success - let the client handle auto-login via ConvexAuthProvider
+      // Return success so client can auto-login
       return NextResponse.json({ 
         success: true,
         message: "Registration successful. Please log in.",
-        userId: result.userId 
+        userId: result.userId,
+        user: { id: result.userId }
       });
 
     } catch (convexError: any) {
