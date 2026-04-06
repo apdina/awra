@@ -61,9 +61,9 @@ export async function POST(request: NextRequest): Promise<NextResponse<AuthRespo
       });
 
       if (!result.success || !result.user) {
-        logError('Convex authentication failed', { error: 'Invalid credentials' });
+        logError('Convex authentication failed', { error: result.error || 'Invalid credentials' });
         return NextResponse.json(
-          { error: 'Invalid email or password' },
+          { error: result.error || 'Invalid email or password' },
           { status: 401 }
         );
       }
