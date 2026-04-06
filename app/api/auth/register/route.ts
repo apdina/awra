@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     // Validate input
     const validatedData = registerSchema.parse(body);
     const email = validatedData.email.trim().toLowerCase();
-    const password = validatedData.password;
+    const password = validatedData.password.trim();
     const username = validatedData.username.trim();
 
     // Create Convex client for registration

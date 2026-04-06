@@ -39,7 +39,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<AuthRespo
     logDebug('Input validation passed');
     
     const email = validatedData.email.trim().toLowerCase();
-    const password = validatedData.password;
+    const password = validatedData.password.trim();
     
     // Get or generate device ID
     const deviceId = request.cookies.get('device_id')?.value || crypto.randomUUID();
