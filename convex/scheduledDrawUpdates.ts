@@ -20,8 +20,9 @@
  * This allows admin to change draw time without code deployment
  */
 
-import { internalAction, internalQuery } from "./_generated/server";
+import { internalAction, internalQuery, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { v } from "convex/values";
 import { Redis } from "@upstash/redis";
 import { getZonedDateTimeParts } from "./timeHelpers";
 
@@ -41,68 +42,50 @@ function getRedisClient() {
 }
 
 /**
- * Check every minute if we've reached draw time
- * Dynamically reads draw time from database
+ * Invalidate Redis cache and ensure next draw
+ * Scheduled to run EXACTLY at draw time by runAt 
  */
-export const checkAndInvalidateAtDrawTime = internalAction({
-  handler: async (ctx) => {
+export const invalidateCacheAtDrawTime = internalAction({
+  args: {
+    drawId: v.id("dailyDraws"),
+    expectedTime: v.number(),
+  },
+  handler: async (ctx, args) => {
     try {
-      // Get App Timezone directly
-      const tzConfig = await ctx.runQuery(internal.scheduledDrawUpdates.getAppTimezoneConfig);
-      const appTimezone = (tzConfig?.value as string) || "Africa/Casablanca";
-
-      const now = new Date();
-      const tzParts = getZonedDateTimeParts(now, appTimezone);
+      console.log(`🔄 Draw time reached! Running scheduled invalidation task...`);
       
-      // Skip if today is Sunday (in the target timezone)
-      if (tzParts.weekday === "Sunday") {
-        return; // Silent skip on Sundays
-      }
+      // Verify the expected time matches the database
+      const draw = await ctx.runQuery(internal.scheduledDrawUpdates.getDrawTimeById, { drawId: args.drawId });
       
-      // Get draw time from database
-      const config = await ctx.runQuery(internal.scheduledDrawUpdates.getDrawTimeConfig);
-      
-      if (!config) {
-        console.log('⚠️ No draw time config found, using default 21:40');
+      if (!draw) {
+        console.log(`⚠️ Draw ${args.drawId} not found. Skipping cache invalidation.`);
         return;
       }
       
-      const drawTime = config.value as string;
-      const [drawHour, drawMinute] = drawTime.split(':').map(Number);
-      
-      // Check if we're within 1 minute after draw time in the correct timezone!
-      // Example: If draw is 22:00, this triggers at 22:00 or 22:01
-      const isDrawTime = (tzParts.hour === drawHour && tzParts.minute === drawMinute) ||
-                         (tzParts.hour === drawHour && tzParts.minute === drawMinute + 1);
-      
-      if (isDrawTime) {
-        console.log(`🔄 Draw time reached (${drawTime} in ${appTimezone})! Invalidating cache...`);
-        
-        // Invalidate Redis cache
-        const redis = getRedisClient();
-        if (redis) {
-          await redis.del('current_draw');
-          await redis.del('winning_numbers_history');
-          console.log('✅ Cache invalidated at draw time - users will see new draw');
-        }
-        
-        // Also ensure next draw is created
-        await ctx.runAction(internal.draws.checkAndIncrementDrawInternal);
-        
-        console.log('✅ Next draw ensured');
-      } else {
-        // Check if draw time has changed (admin might have updated it)
-        const currentDrawTime = `${String(tzParts.hour).padStart(2, '0')}:${String(tzParts.minute).padStart(2, '0')}`;
-        if (Math.abs(tzParts.hour - drawHour) === 0 && Math.abs(tzParts.minute - drawMinute) === 1) {
-          // We're 1 minute away from draw time, pre-emptively check for changes
-          console.log(`📅 Draw time check: ${drawTime}, current: ${currentDrawTime} (${appTimezone})`);
-        }
+      if (draw.drawingTime !== args.expectedTime) {
+        console.log(`⚠️ Draw time changed for ${args.drawId} (expected: ${args.expectedTime}, actual: ${draw.drawingTime}). Skipping cache invalidation as a new job should be scheduled.`);
+        return;
       }
+
+      // Invalidate Redis cache directly
+      const redis = getRedisClient();
+      if (redis) {
+        await redis.del('current_draw');
+        await redis.del('winning_numbers_history');
+        console.log('✅ Cache invalidated at draw time - users will see new draw');
+      }
+      
+      // Also ensure next draw is created
+      await ctx.runMutation(internal.draws.checkAndIncrementDrawInternal);
+      console.log('✅ Next draw ensured');
+      
     } catch (error) {
-      console.error('❌ Error checking draw time:', error);
+      console.error('❌ Error in cache invalidation:', error);
     }
   },
 });
+
+
 
 /**
  * Get draw time configuration
@@ -115,6 +98,16 @@ export const getDrawTimeConfig = internalQuery({
       .first();
     
     return config;
+  },
+});
+
+/**
+ * Get draw time by ID (used for verifying scheduled tasks)
+ */
+export const getDrawTimeById = internalQuery({
+  args: { drawId: v.id("dailyDraws") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.drawId);
   },
 });
 
@@ -143,7 +136,7 @@ export const ensureUpcomingDraw = internalAction({
       
       // This will trigger the checkAndIncrementDraw logic
       // which automatically creates next draw if current has passed
-      const result = await ctx.runAction(internal.draws.checkAndIncrementDrawInternal);
+      const result = await ctx.runMutation(internal.draws.checkAndIncrementDrawInternal);
       
       console.log('✅ Upcoming draw check complete:', result.message);
     } catch (error) {

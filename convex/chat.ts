@@ -80,6 +80,15 @@ export const sendMessage = mutation({
       roomId: args.roomId,
       content: sanitizedContent,
       messageType: args.messageType || "text",
+      
+      // Denormalized user fields for ultra-fast reading
+      userDisplayName: userProfile.displayName,
+      userAvatarUrl: userProfile.avatarUrl,
+      userAvatarName: userProfile.avatarName,
+      userAvatarType: userProfile.avatarType,
+      userIsAdmin: userProfile.isAdmin,
+      userIsModerator: userProfile.isModerator,
+      
       isDeleted: false,
       isEdited: false,
       createdAt: Date.now(),
@@ -253,12 +262,17 @@ export const getMessages = query({
         .take(limit);
     }
 
-    // Get user profiles for all messages (filter out undefined userIds for system messages)
-    const userIds = [...new Set(messages.map(msg => msg.userId).filter((id): id is any => id !== undefined))];
+    // 🚀 PERFORMANCE: Filter messages that don't have denormalized data yet
+    const messagesMissingProfiles = messages.filter(
+      msg => msg.userId && !msg.userDisplayName && msg.messageType !== 'system'
+    );
     
-    // Fetch all user profiles
+    // Get user profiles only for old messages that need them (backward compatibility)
+    const userIdsToFetch = [...new Set(messagesMissingProfiles.map(msg => msg.userId).filter((id): id is any => id !== undefined))];
+    
+    // Fetch missing user profiles (ideally this array is empty for new messages and executes instantly!)
     const userProfiles = await Promise.all(
-      userIds.map(async (id) => {
+      userIdsToFetch.map(async (id) => {
         try {
           const profile = await ctx.db.get(id as any);
           return profile;
@@ -269,7 +283,7 @@ export const getMessages = query({
       })
     );
 
-    // Create profile map
+    // Create profile map for fallback queries
     const profileMap = new Map();
     userProfiles.forEach(profile => {
       if (profile) {
@@ -293,7 +307,23 @@ export const getMessages = query({
         };
       }
       
-      // For regular user messages
+      // 🚀 PERFORMANCE: Use denormalized data if available (Skips DB Map Layer)
+      if (msg.userDisplayName) {
+        return {
+          ...msg,
+          user: {
+            id: msg.userId,
+            displayName: msg.userDisplayName,
+            avatarUrl: msg.userAvatarUrl,
+            avatarName: msg.userAvatarName,
+            avatarType: msg.userAvatarType,
+            isAdmin: msg.userIsAdmin || false,
+            isModerator: msg.userIsModerator || false,
+          },
+        };
+      }
+      
+      // For legacy messages: fallback to profileMap
       const profile = profileMap.get(msg.userId);
       if (profile && profile.displayName) {
         return {
@@ -310,7 +340,7 @@ export const getMessages = query({
         };
       }
       
-      // Fallback for users without profile
+      // Fallback for users without profile and legacy
       return {
         ...msg,
         user: {

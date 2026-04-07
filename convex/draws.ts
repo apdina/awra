@@ -6,7 +6,7 @@
  */
 
 import { v } from "convex/values";
-import { mutation, query, action, internalAction, internalQuery } from "./_generated/server";
+import { mutation, query, action, internalAction, internalQuery, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { internal as unifiedInternal } from "../convex/_generated/api.js";
 import { Redis } from "@upstash/redis";
@@ -734,6 +734,12 @@ export const setDrawTime = mutation({
       // FIXED: Invalidate ticket caches so new tickets show correct draw time
       await ctx.scheduler.runAfter(50, internal.draws.invalidateTicketCachesInternal);
 
+      // Add scheduled function for EXACT draw time invalidation
+      await ctx.scheduler.runAt(drawingTime, internal.scheduledDrawUpdates.invalidateCacheAtDrawTime, { 
+        drawId: existingDraw._id, 
+        expectedTime: drawingTime 
+      });
+
       return {
         success: true,
         drawId: args.drawDate,
@@ -781,6 +787,12 @@ export const setDrawTime = mutation({
       await ctx.scheduler.runAfter(0, internal.draws.invalidateCurrentDrawCacheInternal);
       // FIXED: Invalidate ticket caches so new tickets show correct draw time
       await ctx.scheduler.runAfter(50, internal.draws.invalidateTicketCachesInternal);
+
+      // Add scheduled function for EXACT draw time invalidation
+      await ctx.scheduler.runAt(drawingTime, internal.scheduledDrawUpdates.invalidateCacheAtDrawTime, { 
+        drawId, 
+        expectedTime: drawingTime 
+      });
 
       return {
         success: true,
@@ -1085,6 +1097,12 @@ async function createNextDraw(ctx: any, now: number, baseDate?: Date) {
     updatedAt: now,
   });
 
+  // Schedule exactly timed cache invalidation for this draw
+  await ctx.scheduler.runAt(drawingTime, internal.scheduledDrawUpdates.invalidateCacheAtDrawTime, { 
+    drawId: newDrawId, 
+    expectedTime: drawingTime 
+  });
+
   const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const dayName = dayNames[nextDate.getUTCDay()];
   
@@ -1106,11 +1124,11 @@ async function createNextDraw(ctx: any, now: number, baseDate?: Date) {
 }
 
 /**
- * Internal Action wrapper for checkAndIncrementDraw
- * Called from cron jobs (internalAction can call mutations)
+ * Internal Mutation wrapper for checkAndIncrementDraw
+ * Called from scheduled jobs
  */
-export const checkAndIncrementDrawInternal = internalAction({
-  handler: async (ctx) => {
+export const checkAndIncrementDrawInternal = internalMutation({
+  handler: async (ctx: any) => {
     // Call the internal helper function directly
     return await checkAndIncrementDrawHelper(ctx, process.env.ADMIN_SECRET || '');
   },

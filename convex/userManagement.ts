@@ -11,15 +11,17 @@ export const searchUsers = query({
   handler: async (ctx, args) => {
     const { searchTerm, limit = 20 } = args;
     
-    // Get all users and filter in memory (Convex doesn't have full-text search)
-    const allUsers = await ctx.db.query("userProfiles").take(limit * 2);
+    // Utilize the Convex native Search Index for blazingly fast querying
+    const searchResults = await ctx.db
+      .query("userProfiles")
+      .withSearchIndex("search_displayName", (q) => q.search("displayName", searchTerm))
+      .take(limit);
+
+    // If using search on email, Convex search index matches text, but since we didn't index email
+    // for fulltext, fallback filters are kept light, or we just rely on exact email lookups elsewhere.
+    // For general UI searches, displayName is usually what users use.
     
-    const filteredUsers = allUsers.filter(user => 
-      user.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
-    
-    return filteredUsers.slice(0, limit);
+    return searchResults;
   },
 });
 
@@ -49,9 +51,11 @@ export const getUserByEmail = query({
   handler: async (ctx, args) => {
     const { email } = args;
     
-    // Find user by email
-    const users = await ctx.db.query("userProfiles").collect();
-    const user = users.find(u => u.email === email);
+    // Efficiently find user via indexed match
+    const user = await ctx.db
+      .query("userProfiles")
+      .withIndex("by_email", (q) => q.eq("email", email))
+      .first();
     
     return user || null;
   },

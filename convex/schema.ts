@@ -58,7 +58,8 @@ export const userProfiles = defineTable({
 .index("by_displayName", ["displayName"])
 .index("by_email", ["email"])
 .index("by_oauth", ["oauthProvider", "oauthId"])
-.index("by_active", ["isActive", "lastActiveAt"]);
+.index("by_active", ["isActive", "lastActiveAt"])
+.searchIndex("search_displayName", { searchField: "displayName" });
 
 // Chat Messages - Real-time messaging
 export const chatMessages = defineTable({
@@ -66,6 +67,14 @@ export const chatMessages = defineTable({
   roomId: v.string(), // "global", "draw_123", etc.
   content: v.string(),
   messageType: v.union(v.literal("text"), v.literal("system"), v.literal("winner"), v.literal("admin")),
+  
+  // Denormalized sender profile details (saves DB queries)
+  userDisplayName: v.optional(v.string()),
+  userAvatarUrl: v.optional(v.string()),
+  userAvatarName: v.optional(v.string()),
+  userAvatarType: v.optional(v.union(v.literal("basic"), v.literal("special"), v.literal("photo"))),
+  userIsAdmin: v.optional(v.boolean()),
+  userIsModerator: v.optional(v.boolean()),
   
   // Moderation
   isDeleted: v.boolean(),
