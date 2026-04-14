@@ -57,7 +57,7 @@ export interface Ticket {
   user_id: string;
   draw_id: string;
   total_amount_awra_coins: number; // Total amount in awra_coins
-  status: 'ACTIVE' | 'WON' | 'CLAIMED' | 'CANCELLED';
+  status: 'ACTIVE' | 'WON' | 'LOST' | 'CLAIMED' | 'CANCELLED';
   created_at: string;
   draw_date?: string; // DD/MM/YYYY format
   draw_time?: string; // HH:MM format

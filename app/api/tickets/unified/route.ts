@@ -101,9 +101,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const drawTime = url.searchParams.get('drawTime');
     const limit = url.searchParams.get('limit') ? parseInt(url.searchParams.get('limit')!) : undefined;
 
-    // Validate status parameter
+    // Validate status parameter and allow uppercase values too
+    const normalizedStatusParam = statusParam ? statusParam.toLowerCase() : undefined;
     const allowedStatuses = ['active', 'won', 'lost'] as const;
-    const status = allowedStatuses.includes(statusParam as any) ? statusParam as 'active' | 'won' | 'lost' : undefined;
+    const status = normalizedStatusParam && allowedStatuses.includes(normalizedStatusParam as any)
+      ? normalizedStatusParam as 'active' | 'won' | 'lost'
+      : undefined;
 
     // Call Convex query to get user tickets with token
     const tickets = await convexClient.query(api.unifiedTickets.getUserUnifiedTicketsWithToken, {
@@ -114,13 +117,22 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       limit: limit,
     });
     
+    const normalizeStatus = (status: string) => {
+      const normalized = status?.toLowerCase();
+      if (normalized === 'won') return 'WON';
+      if (normalized === 'claimed') return 'CLAIMED';
+      if (normalized === 'cancelled') return 'CANCELLED';
+      if (normalized === 'lost' || normalized === 'no_winning') return 'LOST';
+      return 'ACTIVE';
+    };
+
     // Transform Convex tickets to match frontend Ticket interface
     const transformedTickets = (tickets || []).map((ticket: any) => ({
       id: ticket.ticketId,
       user_id: ticket.userId,
       draw_id: `${ticket.drawDate}-${ticket.drawTime}`,
       total_amount_awra_coins: ticket.totalAmount,
-      status: ticket.status.toUpperCase() as 'ACTIVE' | 'WON' | 'CLAIMED' | 'CANCELLED',
+      status: normalizeStatus(ticket.status),
       created_at: new Date(ticket.createdAt).toISOString(),
       draw_date: ticket.drawDate,
       draw_time: ticket.drawTime,

@@ -420,6 +420,39 @@ export const getUserUnifiedTickets = query({
       .query("unifiedTickets")
       .filter((q) => q.eq(q.field("userId"), targetUserId));
 
+    if (args.status === "lost") {
+      const lostQuery = ctx.db
+        .query("unifiedTickets")
+        .filter((q) => q.eq(q.field("userId"), targetUserId))
+        .filter((q) => q.eq(q.field("status"), "lost"));
+
+      const legacyQuery = ctx.db
+        .query("unifiedTickets")
+        .filter((q) => q.eq(q.field("userId"), targetUserId))
+        .filter((q) => q.eq(q.field("status"), "no_winning"));
+
+      if (args.drawDate) {
+        lostQuery.filter((q) => q.eq(q.field("drawDate"), args.drawDate));
+        legacyQuery.filter((q) => q.eq(q.field("drawDate"), args.drawDate));
+      }
+
+      if (args.drawTime) {
+        lostQuery.filter((q) => q.eq(q.field("drawTime"), args.drawTime));
+        legacyQuery.filter((q) => q.eq(q.field("drawTime"), args.drawTime));
+      }
+
+      const [lostTickets, legacyTickets] = await Promise.all([
+        lostQuery.order("desc").take(args.limit || 50),
+        legacyQuery.order("desc").take(args.limit || 50),
+      ]);
+
+      const merged = [...lostTickets, ...legacyTickets]
+        .sort((a: any, b: any) => b.createdAt - a.createdAt)
+        .slice(0, args.limit || 50);
+
+      return merged;
+    }
+
     // Apply status filter if provided
     if (args.status) {
       queryBuilder = queryBuilder.filter((q) => q.eq(q.field("status"), args.status));
@@ -436,11 +469,9 @@ export const getUserUnifiedTickets = query({
     }
 
     // Order by purchase date (newest first) and take limit
-    const tickets = await queryBuilder
+    return await queryBuilder
       .order("desc")
       .take(args.limit || 50);
-
-    return tickets;
   },
 });
 /**
@@ -474,6 +505,39 @@ export const getUserUnifiedTicketsWithToken = query({
       .query("unifiedTickets")
       .filter((q) => q.eq(q.field("userId"), targetUserId));
 
+    if (args.status === "lost") {
+      const lostQuery = ctx.db
+        .query("unifiedTickets")
+        .filter((q) => q.eq(q.field("userId"), targetUserId))
+        .filter((q) => q.eq(q.field("status"), "lost"));
+
+      const legacyQuery = ctx.db
+        .query("unifiedTickets")
+        .filter((q) => q.eq(q.field("userId"), targetUserId))
+        .filter((q) => q.eq(q.field("status"), "no_winning"));
+
+      if (args.drawDate) {
+        lostQuery.filter((q) => q.eq(q.field("drawDate"), args.drawDate));
+        legacyQuery.filter((q) => q.eq(q.field("drawDate"), args.drawDate));
+      }
+
+      if (args.drawTime) {
+        lostQuery.filter((q) => q.eq(q.field("drawTime"), args.drawTime));
+        legacyQuery.filter((q) => q.eq(q.field("drawTime"), args.drawTime));
+      }
+
+      const [lostTickets, legacyTickets] = await Promise.all([
+        lostQuery.order("desc").take(args.limit || 50),
+        legacyQuery.order("desc").take(args.limit || 50),
+      ]);
+
+      const merged = [...lostTickets, ...legacyTickets]
+        .sort((a: any, b: any) => b.createdAt - a.createdAt)
+        .slice(0, args.limit || 50);
+
+      return merged;
+    }
+
     // Apply status filter if provided
     if (args.status) {
       queryBuilder = queryBuilder.filter((q) => q.eq(q.field("status"), args.status));
@@ -490,11 +554,9 @@ export const getUserUnifiedTicketsWithToken = query({
     }
 
     // Order by purchase date (newest first) and take limit
-    const tickets = await queryBuilder
+    return await queryBuilder
       .order("desc")
       .take(args.limit || 50);
-
-    return tickets;
   },
 });
 

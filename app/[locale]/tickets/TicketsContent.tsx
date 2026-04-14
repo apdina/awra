@@ -104,10 +104,11 @@ export default function TicketsContent() {
           </div>
 
           {/* Desktop Stats */}
-          <div className="hidden lg:grid lg:grid-cols-4 gap-4 mb-8">
+          <div className="hidden lg:grid lg:grid-cols-5 gap-4 mb-8">
             <StatCard icon={<TicketIcon className="w-5 h-5" />} label={t('tickets.total_tickets')} value={tickets.length} color="blue" />
             <StatCard icon={<Clock className="w-5 h-5" />} label="Active" value={tickets.filter(t => t.status === 'ACTIVE').length} color="yellow" />
             <StatCard icon={<Trophy className="w-5 h-5" />} label="Won" value={tickets.filter(t => t.status === 'WON').length} color="green" />
+            <StatCard icon={<Trophy className="w-5 h-5" />} label="Lost" value={tickets.filter(t => t.status === 'LOST').length} color="gray" />
             <StatCard icon={<Wallet className="w-5 h-5" />} label="Net" value={`Ɐ ${summaryStats.totalWon - summaryStats.totalSpent}`} color={summaryStats.totalWon > summaryStats.totalSpent ? "green" : "red"} />
           </div>
 
