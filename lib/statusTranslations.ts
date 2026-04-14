@@ -3,7 +3,7 @@
  * Maps database status values to i18n translation keys
  */
 
-export type TicketStatus = 'active' | 'won' | 'no_winning' | 'claimed' | 'cancelled';
+export type TicketStatus = 'active' | 'won' | 'lost' | 'no_winning' | 'claimed' | 'cancelled';
 
 /**
  * Get the i18n translation key for a ticket status
@@ -19,6 +19,7 @@ export function getStatusTranslationKey(status: string | undefined): string {
   const statusMap: Record<string, string> = {
     'active': 'tickets.active',
     'won': 'tickets.won',
+    'lost': 'tickets.lost',
     'no_winning': 'tickets.no_winning',
     'claimed': 'tickets.claimed',
     'cancelled': 'tickets.cancelled',
@@ -40,6 +41,7 @@ export function getStatusColorClasses(status: string | undefined): string {
   switch (statusLower) {
     case 'won':
       return 'bg-green-500/20 text-green-400';
+    case 'lost':
     case 'no_winning':
       return 'bg-gray-500/20 text-gray-400';
     case 'claimed':

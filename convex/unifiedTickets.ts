@@ -581,12 +581,15 @@ export const processDrawInternal = internalMutation({
     if (drawRecord.winningNumber !== args.winningNumber) {
       throw new Error(`Winning number mismatch: expected ${args.winningNumber}, draw has ${drawRecord.winningNumber}`);
     }
+
+    const timezone = await getAppTimezone(ctx.db);
     
-    // Extract drawTime from the draw's drawingTime
+    // Extract drawTime from the draw's drawingTime in configured timezone
     const drawDateTime = new Date(drawRecord.drawingTime);
-    const drawTime = `${String(drawDateTime.getUTCHours()).padStart(2, '0')}:${String(drawDateTime.getUTCMinutes()).padStart(2, '0')}`;
+    const drawTimeParts = getZonedDateTimeParts(drawDateTime, timezone);
+    const drawTime = `${String(drawTimeParts.hour).padStart(2, '0')}:${String(drawTimeParts.minute).padStart(2, '0')}`;
     
-    console.log(`Using drawTime from draw record: ${drawTime} (drawingTime: ${drawRecord.drawingTime})`);
+    console.log(`Using drawTime from draw record: ${drawTime} (drawingTime: ${drawRecord.drawingTime}, timezone: ${timezone})`);
 
     // Parse draw date and time to validate and calculate window
     const [day, month, year] = args.drawDate.split('/').map(Number);
@@ -595,8 +598,6 @@ export const processDrawInternal = internalMutation({
     if (!day || !month || !year || !hours || minutes === undefined) {
       throw new Error("Invalid draw date or time format");
     }
-    
-    const timezone = await getAppTimezone(ctx.db);
     
     // Calculate draw timestamp (Timezone Aware)
     const drawTimestamp = createDateInTimezone(year, month, day, hours, minutes, timezone).getTime();
@@ -618,17 +619,18 @@ export const processDrawInternal = internalMutation({
     console.log(`24-hour window: ${windowStartDate.toLocaleString()} to ${windowEndDate.toLocaleString()}`);
     console.log(`Winning number: ${args.winningNumber}`);
 
-    // Get all active tickets for this draw
-    const activeTickets = await ctx.db
+    // Get all tickets for this draw date and filter by active or legacy no_winning status
+    const ticketsForDraw = await ctx.db
       .query("unifiedTickets")
-      .withIndex("by_draw_status", (q) => 
-        q.eq("drawDate", args.drawDate)
-         .eq("drawTime", drawTime)
-         .eq("status", "active")
-      )
+      .withIndex("by_draw_date", (q) => q.eq("drawDate", args.drawDate))
       .collect();
 
-    console.log(`Found ${activeTickets.length} active tickets for this draw`);
+    const activeTickets = ticketsForDraw.filter((ticket: any) => {
+      return (ticket.status === "active" || ticket.status === "no_winning") && ticket.drawTime === drawTime;
+    });
+
+    console.log(`Found ${ticketsForDraw.length} tickets for draw date ${args.drawDate}`);
+    console.log(`Found ${activeTickets.length} active/legacy tickets for draw ${args.drawDate} ${drawTime}`);
 
     if (activeTickets.length === 0) {
       return {
@@ -697,7 +699,7 @@ export const processDrawInternal = internalMutation({
 
       // Update ticket status based on winning/losing
       const updateData: any = {
-        status: ticketIsWinning ? "won" : "no_winning", // 🏷️ Clearly mark non-winning tickets
+        status: ticketIsWinning ? "won" : "lost",
         isWinning: ticketIsWinning,
         winningAmount: ticketWinningAmount,
         winningNumber: args.winningNumber,
@@ -762,7 +764,7 @@ export const processDrawInternal = internalMutation({
           userId: ticketData.userId,
           purchasedAt: new Date(ticketData.purchasedAt).toISOString(),
         });
-        console.log(`❌ NO WIN: Ticket ${ticketData.ticketId} marked as no_winning`);
+        console.log(`❌ NO WIN: Ticket ${ticketData.ticketId} marked as lost`);
       }
     }
 
@@ -866,7 +868,7 @@ export const getUserTicketStats = query({
       totalTickets: allTickets.length,
       activeTickets: allTickets.filter((t: any) => t.status === "active").length,
       wonTickets: allTickets.filter((t: any) => t.status === "won").length,
-      lostTickets: allTickets.filter((t: any) => t.status === "lost").length,
+      lostTickets: allTickets.filter((t: any) => t.status === "lost" || t.status === "no_winning").length,
       totalAmountSpent: allTickets.reduce((sum: number, t: any) => sum + t.totalAmount, 0),
       totalAmountWon: allTickets.reduce((sum: number, t: any) => sum + t.winningAmount, 0),
       exactMatches: allTickets.filter((t: any) => t.matchType === "exact").length,
