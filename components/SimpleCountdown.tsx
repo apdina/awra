@@ -132,13 +132,6 @@ export default function SimpleCountdown() {
         {isLoading && (
           <RefreshCw className="w-4 h-4 text-yellow-400 animate-spin ml-2" />
         )}
-        <button
-          onClick={() => updateCountdown(true)}
-          className="ml-2 p-1 bg-blue-500 hover:bg-blue-600 rounded-full transition-colors"
-          title="Refresh countdown"
-        >
-          <RefreshCw className="w-4 h-4 text-yellow-300" />
-        </button>
       </div>
       
       {countdown.nextDrawDate && (

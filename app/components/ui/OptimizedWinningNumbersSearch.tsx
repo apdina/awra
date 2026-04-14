@@ -17,6 +17,7 @@ export default function OptimizedWinningNumbersSearch({
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<"all" | "day" | "date" | "number">("all");
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
   // Debounce search term to avoid excessive re-renders
@@ -92,7 +93,7 @@ export default function OptimizedWinningNumbersSearch({
     <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 mb-6">
       <h3 className="text-xl font-bold text-white mb-4">{t('search.title')}</h3>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Search Input */}
         <div className="md:col-span-2 lg:col-span-1">
           <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -110,51 +111,63 @@ export default function OptimizedWinningNumbersSearch({
           )}
         </div>
 
-        {/* Filter Type */}
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            {t('search.filter_by')}
-          </label>
-          <select
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value as any)}
-            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
+        <div className="md:col-span-2 flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={() => setShowAdvancedFilters(prev => !prev)}
+            className="w-full text-left px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white font-medium hover:bg-gray-600 transition-colors"
           >
-            <option value="all">{t('search.all_fields')}</option>
-            <option value="day">{t('search.day_only')}</option>
-            <option value="date">{t('search.date_only')}</option>
-            <option value="number">{t('search.number_only')}</option>
-          </select>
-        </div>
+            {t('search.filter_by')}
+            <span className="ml-2 text-sm text-gray-400">{showAdvancedFilters ? '▲' : '▼'}</span>
+          </button>
 
-        {/* Date Range Start */}
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            {t('search.from_date')}
-          </label>
-          <input
-            type="text"
-            value={dateRange.start}
-            onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-            placeholder="DD/MM/YYYY"
-            pattern="\d{2}/\d{2}/\d{4}"
-            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
-          />
-        </div>
+          {showAdvancedFilters && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  {t('search.filter_by')}
+                </label>
+                <select
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value as any)}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                >
+                  <option value="all">{t('search.all_fields')}</option>
+                  <option value="day">{t('search.day_only')}</option>
+                  <option value="date">{t('search.date_only')}</option>
+                  <option value="number">{t('search.number_only')}</option>
+                </select>
+              </div>
 
-        {/* Date Range End */}
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            {t('search.to_date')}
-          </label>
-          <input
-            type="text"
-            value={dateRange.end}
-            onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
-            placeholder="DD/MM/YYYY"
-            pattern="\d{2}/\d{2}/\d{4}"
-            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
-          />
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  {t('search.from_date')}
+                </label>
+                <input
+                  type="text"
+                  value={dateRange.start}
+                  onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+                  placeholder="DD/MM/YYYY"
+                  pattern="\d{2}/\d{2}/\d{4}"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  {t('search.to_date')}
+                </label>
+                <input
+                  type="text"
+                  value={dateRange.end}
+                  onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
+                  placeholder="DD/MM/YYYY"
+                  pattern="\d{2}/\d{2}/\d{4}"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

@@ -174,31 +174,8 @@ export default function WinningNumbersContent({
         <PageWithSidebarAds>
           <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
             <main className="max-w-6xl mx-auto px-4 py-8">
-        {/* Header with Refresh Button */}
+        {/* Header */}
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-4 mb-4">
-            <h1 className="gradient-text-yellow text-4xl font-bold">{t('winning_numbers.title')}</h1>
-            <button
-              onClick={handleRefresh}
-              disabled={loading}
-              className="p-2 rounded-lg bg-gray-700/50 hover:bg-gray-600/50 transition-colors disabled:opacity-50"
-              title="Refresh data"
-            >
-              <svg 
-                className={`w-6 h-6 ${loading ? 'animate-spin' : ''}`} 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth={2} 
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" 
-                />
-              </svg>
-            </button>
-          </div>
           <p className="text-xl text-gray-300">{t('winning_numbers.subtitle')}</p>
         </div>
 
