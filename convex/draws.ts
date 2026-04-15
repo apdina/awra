@@ -384,6 +384,7 @@ export const setWinningNumber = mutation({
         processResult = await ctx.runMutation(unifiedInternal.unifiedTickets.processDrawInternal, {
           drawDate: args.drawId,
           winningNumber: args.winningNumber,
+          adminSecret: args.adminSecret,
         });
         console.log('✅ New draw created + tickets processed successfully:', processResult);
       } catch (error: any) {
@@ -437,6 +438,7 @@ export const setWinningNumber = mutation({
       processResult = await ctx.runMutation(unifiedInternal.unifiedTickets.processDrawInternal, {
         drawDate: args.drawId,
         winningNumber: args.winningNumber,
+        adminSecret: args.adminSecret,
       });
       console.log('✅ Winning number set + tickets processed successfully:', processResult);
     } catch (error: any) {

@@ -602,7 +602,7 @@ export const processDrawInternal = internalMutation({
       // Verify admin secret from database
       const config = await ctx.db
         .query("systemConfig")
-        .filter((q) => q.eq(q.field("key"), "adminSecret"))
+        .filter((q) => q.eq(q.field("key"), "ADMIN_SECRET"))
         .first();
       
       const ADMIN_SECRET = config?.value || "";
