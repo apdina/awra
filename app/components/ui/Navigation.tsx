@@ -20,16 +20,7 @@ interface NavigationProps {
 }
 
 export function Navigation({ isAuthenticated, user, session, loading = false, onLogout, onNavigateHome }: NavigationProps) {
-  // Debug log to see when user data changes
-  useEffect(() => {
-    console.log("🔍 Navigation component state:", { 
-      isAuthenticated, 
-      userId: user?.id, 
-      balance: user?.awra_coins,
-      loading,
-      hasSession: !!session
-    });
-  }, [user?.id, isAuthenticated, loading, session]);
+
 
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);

@@ -99,14 +99,7 @@ export default function SimpleCountdown() {
     return () => clearInterval(interval);
   }, []);
 
-  // Refresh from server every 30 seconds
-  useEffect(() => {
-    const refreshInterval = setInterval(() => {
-      updateCountdown();
-    }, 30000); // 30 seconds
-    
-    return () => clearInterval(refreshInterval);
-  }, []);
+
 
   const formatNumber = (num: number) => String(num).padStart(2, '0');
 
