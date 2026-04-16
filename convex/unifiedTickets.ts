@@ -688,11 +688,11 @@ export const processDrawInternal = internalMutation({
       .collect();
 
     const activeTickets = ticketsForDraw.filter((ticket: any) => {
-      return (ticket.status === "active" || ticket.status === "no_winning") && ticket.drawTime === drawTime;
+      return (ticket.status === "active" || ticket.status === "no_winning");
     });
 
     console.log(`Found ${ticketsForDraw.length} tickets for draw date ${args.drawDate}`);
-    console.log(`Found ${activeTickets.length} active/legacy tickets for draw ${args.drawDate} ${drawTime}`);
+    console.log(`Found ${activeTickets.length} active/legacy tickets for draw ${args.drawDate}`);
 
     if (activeTickets.length === 0) {
       return {
