@@ -4,6 +4,7 @@ import "./globals.css";
 import { FooterDisclaimer } from "@/app/components/ui/FooterDisclaimer";
 import { LocaleHtml } from './components/LocaleHtml';
 import AdBlockWarning from '@/components/AdBlockWarning';
+import Script from 'next/script';
 
 // Environment validation is now handled per-route to avoid build blocking
 
@@ -29,6 +30,9 @@ export default function RootLayout({
 }>) {
   return (
     <LocaleHtml>
+      <head>
+        <Script defer src="https://cloud.umami.is/script.js" data-website-id="8e07a050-717f-4af1-a570-76fd4ac5d5d2" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
       >
