@@ -57,6 +57,29 @@ export const addHoliday = mutation({
         });
       }
     }
+    
+    // If a holiday was successfully added, we must delete any "upcoming" draws
+    // that might have already been created for this date, so the system recalculates
+    // the next valid draw and skips the holiday.
+    const upcomingDraws = await ctx.db
+      .query("dailyDraws")
+      .withIndex("by_status", (q) => q.eq("status", "upcoming"))
+      .collect();
+      
+    // Delete all upcoming draws to be safe and force a clean recalculation
+    for (const draw of upcomingDraws) {
+      await ctx.db.delete(draw._id);
+    }
+    
+    // Invalidate caches and trigger recreation of the next draw
+    try {
+      const internalApi = (await import("./_generated/api.js")).internal;
+      await ctx.scheduler.runAfter(0, internalApi.draws.invalidateCurrentDrawCacheInternal);
+      await ctx.scheduler.runAfter(0, internalApi.draws.invalidateTicketCachesInternal);
+      await ctx.scheduler.runAfter(100, internalApi.scheduledDrawUpdates.ensureUpcomingDraw);
+    } catch (e) {
+      console.error("Failed to trigger cache invalidation or upcoming draw creation", e);
+    }
 
     return { success: true, holidays };
   },
@@ -98,6 +121,27 @@ export const removeHoliday = mutation({
       value: JSON.stringify(filtered),
       updatedAt: Date.now(),
     });
+
+    // We also delete all "upcoming" draws when a holiday is removed
+    // so that the system can properly schedule a draw on the newly available day
+    const upcomingDraws = await ctx.db
+      .query("dailyDraws")
+      .withIndex("by_status", (q) => q.eq("status", "upcoming"))
+      .collect();
+      
+    for (const draw of upcomingDraws) {
+      await ctx.db.delete(draw._id);
+    }
+    
+    // Invalidate caches and trigger recreation of the next draw
+    try {
+      const internalApi = (await import("./_generated/api.js")).internal;
+      await ctx.scheduler.runAfter(0, internalApi.draws.invalidateCurrentDrawCacheInternal);
+      await ctx.scheduler.runAfter(0, internalApi.draws.invalidateTicketCachesInternal);
+      await ctx.scheduler.runAfter(100, internalApi.scheduledDrawUpdates.ensureUpcomingDraw);
+    } catch (e) {
+      console.error("Failed to trigger cache invalidation or upcoming draw creation", e);
+    }
 
     return { success: true, holidays: filtered };
   },
