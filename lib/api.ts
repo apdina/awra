@@ -134,31 +134,5 @@ export const claimWinnings = async (ticketId: string): Promise<{ success: boolea
   });
 };
 
-// --- Payments --- (Social Casino: Only deposits allowed)
-export const initiatePayment = async (paymentData: {
-  amount_awra: number;
-  type: 'DEPOSIT'; // Only deposits - users purchase virtual coins with real money
-  provider: 'SQUARE' | 'SKRILL' | 'CRYPTO' | 'BANK';
-  return_url?: string;
-  cancel_url?: string;
-  square_token?: string;
-}): Promise<{ success: boolean; transaction?: any; payment_url?: string; message: string }> => {
-  return apiRequest("/api/payments", {
-    method: "POST",
-    body: JSON.stringify(paymentData),
-  });
-};
-
-export const getTransactionHistory = async (params?: {
-  page?: number;
-  limit?: number;
-  status?: string;
-}): Promise<{ transactions: any[]; total: number; page: number; limit: number }> => {
-  const searchParams = new URLSearchParams();
-  if (params?.page) searchParams.set('page', params.page.toString());
-  if (params?.limit) searchParams.set('limit', params.limit.toString());
-  if (params?.status) searchParams.set('status', params.status);
-  
-  const query = searchParams.toString();
-  return apiRequest(`/api/payments${query ? `?${query}` : ''}`);
-};
+// Note: Payment functions removed - this is a free-to-play social game
+// No real money transactions. Coins are virtual only.

@@ -45,14 +45,8 @@ export const validateEnvironmentVariables = () => {
     }
   });
 
-  // Payment processing limits
-  const paymentLimits = ['MIN_DEPOSIT_AMOUNT', 'MAX_DEPOSIT_AMOUNT'];
-  paymentLimits.forEach(varName => {
-    const value = process.env[varName];
-    if (value && isNaN(parseInt(value))) {
-      errors.push(`${varName} must be a valid number`);
-    }
-  });
+  // Note: Payment validation removed - this is a free-to-play social game
+  // No real money transactions. Coins are virtual only.
 
   if (errors.length > 0) {
     console.error('❌ Environment Variable Validation Errors:');
