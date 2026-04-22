@@ -28,19 +28,12 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              // Note: 'unsafe-inline' and 'unsafe-eval' are needed for:
-              // - Next.js dynamic imports and hot reload
-              // - Convex client library
-              // - Inline styles from Tailwind
-              // TODO: Consider using nonces for stricter CSP in production
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
               "img-src 'self' data: https: blob:",
               "font-src 'self' data: https://fonts.gstatic.com https://fonts.googleapis.com",
-              // Note: Broad connect-src needed for dynamic Convex deployment URLs
-              // Convex URLs are per-deployment (e.g., https://app-xxx.convex.dev)
-              // External APIs: api.resend.com, api.sendgrid.com, Upstash Redis
-              "connect-src 'self' https://*.convex.dev https://api.resend.com https://api.sendgrid.com https://*.upstash.io wss://*.convex.dev",
+              // Permissive connect-src for Convex dynamic URLs and external APIs
+              "connect-src 'self' https: wss:",
               "media-src 'self' https: blob:",
               "frame-src 'self' https:",
               "object-src 'none'",
