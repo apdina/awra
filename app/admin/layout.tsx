@@ -1,6 +1,7 @@
 "use client";
 
 import { AdminLogin } from '@/app/components/AdminLogin';
+import { ConvexClientProvider } from '@/components/ConvexClientProvider';
 
 export default function AdminLayout({
   children,
@@ -8,8 +9,10 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   return (
-    <AdminLogin>
-      {children}
-    </AdminLogin>
+    <ConvexClientProvider>
+      <AdminLogin>
+        {children}
+      </AdminLogin>
+    </ConvexClientProvider>
   );
 }
