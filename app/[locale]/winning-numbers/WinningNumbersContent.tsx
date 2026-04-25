@@ -181,16 +181,24 @@ export default function WinningNumbersContent({
 
         {/* Current Draw Highlight - Yellow gradient */}
         <div className="gradient-bg-yellow backdrop-blur-sm rounded-2xl p-8 mb-8 text-center">
-          <h2 className="text-2xl font-bold text-yellow-400 mb-4">{t('winning_numbers.todays_winning_number')}</h2>
-          <div className="flex justify-center items-center mb-4">
+          <h2 className="text-2xl font-bold text-yellow-400 mb-2">{t('winning_numbers.winning_number_for_day')}</h2>
+          <div className="text-lg text-gray-300 mb-4">
+            {currentDraw.winning_number ? (
+              <>
+                {getDayOfWeek(currentDraw.draw_date)} {currentDraw.draw_date}
+              </>
+            ) : (
+              <>
+                {winningNumbers.length > 0 ? getDayOfWeek(winningNumbers[0].date) : ''} {winningNumbers.length > 0 ? winningNumbers[0].date : currentDraw.draw_date}
+              </>
+            )}
+          </div>
+          <div className="flex justify-center items-center">
             <WinningNumberDisplay 
               number={currentDraw.winning_number || (winningNumbers.length > 0 ? winningNumbers[0].number : null) || 0} 
               size="lg"
               locale={locale as Locale}
             />
-          </div>
-          <div className="text-gray-300 text-lg">
-            {currentDraw.winning_number ? currentDraw.draw_date : (winningNumbers.length > 0 ? winningNumbers[0].date : currentDraw.draw_date)}
           </div>
         </div>
 

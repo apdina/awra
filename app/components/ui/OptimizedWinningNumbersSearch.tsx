@@ -91,8 +91,6 @@ export default function OptimizedWinningNumbersSearch({
 
   return (
     <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 mb-6">
-      <h3 className="text-xl font-bold text-white mb-4">{t('search.title')}</h3>
-      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Search Input */}
         <div className="md:col-span-2 lg:col-span-1">
